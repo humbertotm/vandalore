@@ -21,7 +21,7 @@ sinonStubPromise(sinon);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-describe.only('Categories controller', function() {
+describe('Categories controller', function() {
 	describe('get_posts', function() {
 		var req, res, cat, post1, post2, catMock, id1, id2, id3;
 		var sandbox = sinon.sandbox.create();

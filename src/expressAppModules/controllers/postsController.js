@@ -42,9 +42,9 @@ module.exports.push_and_save_post = function(post) {
 	var categoryId = post.category;
 
 	var promises = [
-				User.findById(userId).exec(),
-				Category.findById(post.category).exec()
-			];
+		User.findById(userId).exec(),
+		Category.findById(categoryId).exec()
+	];
 
 	var promisedDocs = Promise.all(promises);
 

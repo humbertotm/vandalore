@@ -23,7 +23,8 @@ module.exports.get_more_posts = function(req, res) {
 	var maxId = req.params.maxId;
 
 	return Category.findById(categoryId).populate({
-
+		path: 'posts',
+		
 	}).exec().then(function(category) {
 
 	})

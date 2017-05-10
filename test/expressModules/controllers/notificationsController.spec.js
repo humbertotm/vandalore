@@ -21,7 +21,7 @@ sinonStubPromise(sinon);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-describe.only('Notifactions controller', function() {
+describe('Notifactions controller', function() {
 	describe('get_notifications', function() {
 		var reqWithUser, reqWithoutUser, res, 
 		id1, id2, id3, id4, id5,

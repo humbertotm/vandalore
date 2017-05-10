@@ -22,7 +22,7 @@ sinonStubPromise(sinon);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-describe.only('Comments controller', function() {
+describe('Comments controller', function() {
 	describe('create_comment', function() {
 		var res, id1, id2, id3, err,
 				comment, next, save;
@@ -183,9 +183,11 @@ describe.only('Comments controller', function() {
 			});
 		});
 
-		it('logs error to the console when Promise.all()  rejects', function(done) {
+		it('logs error to the console when Promise.all() rejects', function(done) {
 			var consoleLog = sandbox.spy(console, 'log');
 			var promiseAll = sandbox.stub(Promise, 'all');
+			var saveUser = sandbox.stub(User.prototype, 'save');
+			var savePost = sandbox.stub(Post.prototype, 'save');
 
 			var err = {
 				errors: {
@@ -197,6 +199,8 @@ describe.only('Comments controller', function() {
 
 			commentsController.push_and_save_comment(comment).then(function() {
 				expect(promiseAll.called).to.equal(true);
+				expect(saveUser.called).to.equal(false);
+				expect(savePost.called).to.equal(false);
 				expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
 				done();
 			});

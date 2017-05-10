@@ -26,7 +26,7 @@ sinonStubPromise(sinon);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-describe.only('Votes controller', function() {
+describe('Votes controller', function() {
 	describe('create_vote', function() {
 		var reqWithUser, reqWithoutUser, res, vote, 
 				id1, id2, id3, err, next, save;

@@ -21,7 +21,7 @@ sinonStubPromise(sinon);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-describe.only('Relationships controller', function() {
+describe('Relationships controller', function() {
 	describe('create_relationship', function() {
 		var id1, id2, id3, rel, follower, followed, res, 
 				reqWithUser, reqWithoutUser, next, save;

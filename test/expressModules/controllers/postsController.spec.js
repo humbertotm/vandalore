@@ -23,7 +23,7 @@ sinonStubPromise(sinon);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-describe.only('Posts controller', function() {
+describe('Posts controller', function() {
 	describe('create_post', function() {
 		var id1, id2, id3, save, next, post,
 				reqWithUser, reqWithoutUser, res;
@@ -158,7 +158,7 @@ describe.only('Posts controller', function() {
 
 			userMock = sandbox.mock(User);
 			categoryMock = sandbox.mock(Category);
-			consoleLog = sandbox.stub(console, 'log');
+			consoleLog = sandbox.spy(console, 'log');
 			promiseAll = sandbox.stub(Promise, 'all');
 			userSave = sandbox.stub(User.prototype, 'save');
 			categorySave = sandbox.stub(Category.prototype, 'save');
@@ -182,42 +182,30 @@ describe.only('Posts controller', function() {
 				.chain('exec')
 				.resolves(category);
 
-			promiseAll.returnsPromise().resolves([user, category]);
 			userSave.returnsPromise().resolves();
 			categorySave.returnsPromise().resolves();
+			promiseAll.returnsPromise().resolves([user, category]);
 
 			postsController.push_and_save_post(post).then(function() {
+				expect(promiseAll.called).to.equal(true);
 				userMock.verify();
 				categoryMock.verify();
-				expect(promiseAll.called).to.equal(true);
 				expect(userSave.called).to.equal(true);
 				expect(categorySave.called).to.equal(true);
 				done();
 			});
 		});
 
-		it('logs error to the console when Promise.all() rejects', function() {
+		it('logs error to the console when Promise.all() rejects', function(done) {
 			var err = {
 				errors: {
 					message: 'Some error message.'
 				}
 			};
 
-			userMock
-				.expects('findById')
-				.chain('exec')
-				.rejects();
-
-			categoryMock
-				.expects('findById')
-				.chain('exec')
-				.resolves(category);
-
 			promiseAll.returnsPromise().rejects(err);
 
 			postsController.push_and_save_post(post).then(function() {
-				userMock.verify();
-				categoryMock.verify();
 				expect(promiseAll.called).to.equal(true);
 				expect(userSave.called).to.equal(false);
 				expect(categorySave.called).to.equal(false);
@@ -367,7 +355,7 @@ describe.only('Posts controller', function() {
 			});
 		});
 
-		it('responds with err when Post.findById() rejects', function() {
+		it('responds with err when Post.findById() rejects', function(done) {
 			var err = {
 				errors: {
 					message: 'Some error message.'
