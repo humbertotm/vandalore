@@ -21,7 +21,7 @@ sinonStubPromise(sinon);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-describe('Categories controller', function() {
+describe.only('Categories controller', function() {
 	describe('get_posts', function() {
 		var req, res, cat, post1, post2, catMock, id1, id2, id3;
 		var sandbox = sinon.sandbox.create();
@@ -100,7 +100,7 @@ describe('Categories controller', function() {
 
 	describe('get_more_posts', function() {
 		var req, res, id1, id2, id3, id4, id5,
-				cat, post1, post2, post3, catMock;
+				cat, post3, post4, catMock, catProtoMock;
 		var sandbox = sinon.sandbox.create();
 
 		beforeEach(function() {
@@ -109,13 +109,23 @@ describe('Categories controller', function() {
 				url: '/categories/:categoryId/posts/:postId',
 				params: {
 					categoryId: 1,
-					maxId: id1
+					maxId: id3
 				}
 			});
 
 			res = mockHttp.createResponse();
 
+			cat = new Category({
+				_id: 1,
+				categoryName: 'hot',
+				posts: [id1, id2, id3, id4, id5]
+			});
+
+			post3 = new Post();
+			post4 = new Post();
+
 			catMock = sandbox.mock(Category);
+			catProtoMock = sandbox.mock(Category.prototype);
 		});
 
 		afterEach(function() {
@@ -124,11 +134,35 @@ describe('Categories controller', function() {
 			res = {};
 		});
 
-		/*
 		it('responds with more posts for specified category', function(done) {
-			
+			var popCat = new Category({
+				_id: 1,
+				categoryName: 'hot',
+				posts: [post3, post4]
+			});
+
+			catMock
+				.expects('findById')
+				.chain('exec')
+				.resolves(cat)
+
+			catProtoMock
+				.expects('populate')
+				.chain('exec')
+				.resolves(popCat);
+
+			catController.get_more_posts(req, res).then(function() {
+				var data = JSON.parse(res._getData());
+
+				catMock.verify();
+				catProtoMock.verify();
+				expect(res.statusCode).to.equal(200);
+				expect(data.length).to.equal(2);
+				done()
+			});
+
+
 		});
-		*/
 
 		it('responds with err when Category.findById() rejects', function(done) {
 			var err = {
@@ -139,7 +173,6 @@ describe('Categories controller', function() {
 
 			catMock
 				.expects('findById')
-				.chain('populate')
 				.chain('exec')
 				.rejects(err);
 
