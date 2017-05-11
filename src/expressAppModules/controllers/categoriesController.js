@@ -28,9 +28,9 @@ module.exports.get_more_posts = function(req, res) {
 			path: 'posts',
 			options: {
 				skip: toSkip,
-				limit: 2
+				limit: 20
 			}
-		}).exec().then(function(popCat) {
+		}).execPopulate().then(function(popCat) {
 			res.json(popCat.posts);
 		});
 	})

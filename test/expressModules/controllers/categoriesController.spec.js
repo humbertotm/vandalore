@@ -100,7 +100,7 @@ describe.only('Categories controller', function() {
 
 	describe('get_more_posts', function() {
 		var req, res, id1, id2, id3, id4, id5,
-				cat, post3, post4, catMock, catProtoMock;
+				cat, post3, post4, catMock, pop, execPop;
 		var sandbox = sinon.sandbox.create();
 
 		beforeEach(function() {
@@ -125,7 +125,8 @@ describe.only('Categories controller', function() {
 			post4 = new Post();
 
 			catMock = sandbox.mock(Category);
-			catProtoMock = sandbox.mock(Category.prototype);
+			// pop = sandbox.stub(Category.prototype, 'populate');
+			execPop = sandbox.stub(Category.prototype, 'execPopulate');
 		});
 
 		afterEach(function() {
@@ -146,16 +147,14 @@ describe.only('Categories controller', function() {
 				.chain('exec')
 				.resolves(cat)
 
-			catProtoMock
-				.expects('populate')
-				.chain('exec')
-				.resolves(popCat);
+			execPop.returnsPromise().resolves(popCat);
 
 			catController.get_more_posts(req, res).then(function() {
 				var data = JSON.parse(res._getData());
 
 				catMock.verify();
-				catProtoMock.verify();
+				// expect(pop.called).to.equal(true);
+				expect(execPop.called).to.equal(true);
 				expect(res.statusCode).to.equal(200);
 				expect(data.length).to.equal(2);
 				done()
@@ -180,6 +179,31 @@ describe.only('Categories controller', function() {
 				var data = JSON.parse(res._getData());
 
 				catMock.verify();
+				expect(res.statusCode).to.equal(500);
+				expect(data.errors).to.exist;
+				done();
+			});
+		});
+
+		it('responds with err when doc.execPopulate() rejects', function(done) {
+			var err = {
+				errors: {
+					message: 'Some error message.'
+				}
+			};
+
+			catMock
+				.expects('findById')
+				.chain('exec')
+				.resolves(cat);
+
+			execPop.returnsPromise().rejects(err);
+
+			catController.get_more_posts(req, res).then(function() {
+				var data = JSON.parse(res._getData());
+
+				catMock.verify();
+				expect(execPop.called).to.equal(true);
 				expect(res.statusCode).to.equal(500);
 				expect(data.errors).to.exist;
 				done();
