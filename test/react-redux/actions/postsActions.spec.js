@@ -1,17 +1,18 @@
 import chai from 'chai'
-import * as actions from '../../../src/actions/posts'
-import { CALL_API, Schemas } from '../../../src/middleware/api'
+import * as actions from '../../../src/react-redux/actions/posts'
+import { CALL_API, Schemas } from '../../../src/react-redux/middleware/api'
 import {
 	FETCH_POSTS_REQUEST, FETCH_POSTS_SUCCESS, FETCH_POSTS_FAILURE,
 	DELETE_POST_REQUEST, DELETE_POST_SUCCESS, DELETE_POST_FAILURE,
 	INVALIDATE_CATEGORY_POSTS
-} from '../../../src/actions/constants'
+} from '../../../src/react-redux/actions/constants'
 import configureStore from 'redux-mock-store'
 import ReduxThunk from 'redux-thunk'
 import sinon from 'sinon'
 
 const expect = chai.expect;
 
+// Look out for async code tested synchronously, and fix it.
 describe.skip('posts action creators', () => {
 	let store
 	const middlewares = [ ReduxThunk ]
