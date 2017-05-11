@@ -2,9 +2,9 @@ import chai from 'chai'
 import * as actions from '../../../src/react-redux/actions/posts'
 import { CALL_API, Schemas } from '../../../src/react-redux/middleware/api'
 import {
-	FETCH_POSTS_REQUEST, FETCH_POSTS_SUCCESS, FETCH_POSTS_FAILURE,
-	DELETE_POST_REQUEST, DELETE_POST_SUCCESS, DELETE_POST_FAILURE,
-	INVALIDATE_CATEGORY_POSTS
+    FETCH_POSTS_REQUEST, FETCH_POSTS_SUCCESS, FETCH_POSTS_FAILURE,
+    DELETE_POST_REQUEST, DELETE_POST_SUCCESS, DELETE_POST_FAILURE,
+    INVALIDATE_CATEGORY_POSTS
 } from '../../../src/react-redux/actions/constants'
 import configureStore from 'redux-mock-store'
 import ReduxThunk from 'redux-thunk'
@@ -14,130 +14,130 @@ const expect = chai.expect;
 
 // Look out for async code tested synchronously, and fix it.
 describe.skip('posts action creators', () => {
-	let store
-	const middlewares = [ ReduxThunk ]
+    let store
+    const middlewares = [ ReduxThunk ]
 
-	before(() => {
+    before(() => {
 
-	})
+    })
 
-	beforeEach(() => {
+    beforeEach(() => {
 
-	})
+    })
 
-	afterEach(() => {
+    afterEach(() => {
 
-	})
-	// Does not work without the deep comparison.
-	it('deletePost action creator creates action', () => {
-		// Create a mockStore.
-		const mockStore = configureStore(middlewares)
-		// Create an instance of mockStore.
-		store = mockStore({})
-		const expectedActions = [{
-			type: [CALL_API],
-			payload: {
-				// Does not go as deep as these key-value pairs.
-				// If this key-value pairs are critical, verify their correctness
-				// through a similar approach as the one used for fetchPosts.
-				types: [ DELETE_POST_REQUEST, DELETE_POST_SUCCESS, DELETE_POST_FAILURE ],
-				endpoint: '/posts?postId=10',
-				method: 'DELETE'
-			}
-		}]
+    })
+    // Does not work without the deep comparison.
+    it('deletePost action creator creates action', () => {
+        // Create a mockStore.
+        const mockStore = configureStore(middlewares)
+        // Create an instance of mockStore.
+        store = mockStore({})
+        const expectedActions = [{
+            type: [CALL_API],
+            payload: {
+                // Does not go as deep as these key-value pairs.
+                // If this key-value pairs are critical, verify their correctness
+                // through a similar approach as the one used for fetchPosts.
+                types: [ DELETE_POST_REQUEST, DELETE_POST_SUCCESS, DELETE_POST_FAILURE ],
+                endpoint: '/posts?postId=10',
+                method: 'DELETE'
+            }
+        }]
 
-		store.dispatch(actions.deletePost(10))
-		expect(store.getActions()).to.deep.equal(expectedActions)
-	})
+        store.dispatch(actions.deletePost(10))
+        expect(store.getActions()).to.deep.equal(expectedActions)
+    })
 
-	it('loadPosts action creator dispatches fetchPosts when items.length === 0', () => {
-		// Create a mockStore.
-		const mockStore = configureStore(middlewares)
-		// Give it an initialState.
-		const initialState = {
-			postsByCategory: {
-				hot: {
-					isFetching: false,
-					items: [],
-					lastItemFetchedId: 9,
-					lastUpdated: Date.now()
-				}
-			}
-		}	
+    it('loadPosts action creator dispatches fetchPosts when items.length === 0', () => {
+        // Create a mockStore.
+        const mockStore = configureStore(middlewares)
+        // Give it an initialState.
+        const initialState = {
+            postsByCategory: {
+                hot: {
+                    isFetching: false,
+                    items: [],
+                    lastItemFetchedId: 9,
+                    lastUpdated: Date.now()
+                }
+            }
+        }
 
-		// Create an instance of the mockStore and provide it with initialState.
-		store = mockStore(initialState)
-		// Create spy on store.dispatch
-		const spy = sinon.spy(store, 'dispatch')
-		const expectedActions = [{
-			type: [CALL_API],
-			payload: {
-				types: [ FETCH_POSTS_REQUEST, FETCH_POSTS_SUCCESS, FETCH_POSTS_FAILURE],
-				endpoint: '/posts?category=hot',
-				schema: Schemas.POST,
-				method: 'GET'
-			}		
-		}]
+        // Create an instance of the mockStore and provide it with initialState.
+        store = mockStore(initialState)
+        // Create spy on store.dispatch
+        const spy = sinon.spy(store, 'dispatch')
+        const expectedActions = [{
+            type: [CALL_API],
+            payload: {
+                types: [ FETCH_POSTS_REQUEST, FETCH_POSTS_SUCCESS, FETCH_POSTS_FAILURE],
+                endpoint: '/posts?category=hot',
+                schema: Schemas.POST,
+                method: 'GET'
+            }
+        }]
 
-		return store.dispatch(actions.loadPosts('hot'))
+        return store.dispatch(actions.loadPosts('hot'))
 
-		sinon.assert.calledTwice(spy)
-		expect(store.getActions()).to.deep.equal(expectedActions)
-		spy.restore()
-	})
+        sinon.assert.calledTwice(spy)
+        expect(store.getActions()).to.deep.equal(expectedActions)
+        spy.restore()
+    })
 
-	it('loadPosts action creator returns null when items.length !== 0', () => {
-		// Create a mockStore.
-		const mockStore = configureStore(middlewares)
-		// Give the store an initialState.
-		const initialState = {
-			postsByCategory: {
-				hot: {
-					isFetching: false,
-					items: [10, 9],
-					lastItemFetchedId: 9,
-					lastUpdated: Date.now()
-				}
-			}
-		}	
-		store = mockStore(initialState)
+    it('loadPosts action creator returns null when items.length !== 0', () => {
+        // Create a mockStore.
+        const mockStore = configureStore(middlewares)
+        // Give the store an initialState.
+        const initialState = {
+            postsByCategory: {
+                hot: {
+                    isFetching: false,
+                    items: [10, 9],
+                    lastItemFetchedId: 9,
+                    lastUpdated: Date.now()
+                }
+            }
+        }
+        store = mockStore(initialState)
 
-		// Assert null is returned.
-		const loadPostsValue = store.dispatch(actions.loadPosts('hot'))
-		expect(loadPostsValue).to.equal(null)
-	})
+        // Assert null is returned.
+        const loadPostsValue = store.dispatch(actions.loadPosts('hot'))
+        expect(loadPostsValue).to.equal(null)
+    })
 
-	it('fetchPosts returns action with maxId & category in endpoint', () => {
-		// Will have to access endpoint property to make a comparison,
-		// as deep comparison will not go as deep.
+    it('fetchPosts returns action with maxId & category in endpoint', () => {
+        // Will have to access endpoint property to make a comparison,
+        // as deep comparison will not go as deep.
 
-		// Create a mockStore.
-		const mockStore = configureStore(middlewares)
-		// Create an instance of mockStore.
-		store = mockStore({})
-		
-		store.dispatch(actions.fetchPosts('hot', 10))
-		const storeActions = store.getActions()
-		const actionOfInterest = storeActions[0]
-		const expectedEndpoint = '/posts?maxId=10&category=hot'
+        // Create a mockStore.
+        const mockStore = configureStore(middlewares)
+        // Create an instance of mockStore.
+        store = mockStore({})
 
-		expect(actionOfInterest.payload.endpoint).to.equal(expectedEndpoint)
-	})
+        store.dispatch(actions.fetchPosts('hot', 10))
+        const storeActions = store.getActions()
+        const actionOfInterest = storeActions[0]
+        const expectedEndpoint = '/posts?maxId=10&category=hot'
 
-	it('fetchPosts returns action only with category in endpoint', () => {
-		// Same as above.
+        expect(actionOfInterest.payload.endpoint).to.equal(expectedEndpoint)
+    })
 
-		// Create a mockStore.
-		const mockStore = configureStore(middlewares)
-		// Create an instance of mockStore.
-		store = mockStore({})
-		
-		store.dispatch(actions.fetchPosts('hot'))
-		const storeActions = store.getActions()
-		const actionOfInterest = storeActions[0]
-		const expectedEndpoint = '/posts?category=hot'
+    it('fetchPosts returns action only with category in endpoint', () => {
+        // Same as above.
 
-		expect(actionOfInterest.payload.endpoint).to.equal(expectedEndpoint)
-	})
+        // Create a mockStore.
+        const mockStore = configureStore(middlewares)
+        // Create an instance of mockStore.
+        store = mockStore({})
+
+        store.dispatch(actions.fetchPosts('hot'))
+        const storeActions = store.getActions()
+        const actionOfInterest = storeActions[0]
+        const expectedEndpoint = '/posts?category=hot'
+
+        expect(actionOfInterest.payload.endpoint).to.equal(expectedEndpoint)
+    })
 })
 

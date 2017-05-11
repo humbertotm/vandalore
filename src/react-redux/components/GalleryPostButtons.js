@@ -5,32 +5,32 @@ import VoteButtons from '../components/VoteButtons'
 import UnvoteButtons from '../components/UnvoteButtons'
 
 export default class GalleryPostButtons extends Component {
-	render() {
-		const { currentUser, post, currentUserVoteExists, toggleModal, createVote, deleteVote } = this.props
+    render() {
+        const { currentUser, post, currentUserVoteExists, toggleModal, createVote, deleteVote } = this.props
 
-		return (
-			<div>
-				{
-					!currentUser &&
-					<NoSessionButtons toggleModal={toggleModal} />
-				}
+        return (
+            <div>
+                {
+                    !currentUser &&
+                    <NoSessionButtons toggleModal={toggleModal} />
+                }
 
-				{
-					currentUser && !currentUserVoteExists &&
-					<VoteButtons 
-						post={post}
-						currentUser={currentUser}
-						createVote={createVote} />
-				}
+                {
+                    currentUser && !currentUserVoteExists &&
+                    <VoteButtons
+                        post={post}
+                        currentUser={currentUser}
+                        createVote={createVote} />
+                }
 
-				{
-					<UnvoteButtons 
-						currentUserVoteExists={currentUserVoteExists}
-						deleteVote={deleteVote} />
-				}
-			</div>
-		)
-	}
+                {
+                    <UnvoteButtons
+                        currentUserVoteExists={currentUserVoteExists}
+                        deleteVote={deleteVote} />
+                }
+            </div>
+        )
+    }
 }
 
 GalleryPostButtons.PropTypes = {

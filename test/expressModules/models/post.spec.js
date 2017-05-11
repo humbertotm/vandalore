@@ -3,102 +3,102 @@ var Post = require('../../../src/expressAppModules/models/postModel');
 var expect = chai.expect;
 
 describe('Post model', function() {
-	var id;
-	var p;
+    var id;
+    var p;
 
-	beforeEach(function() {
-		p = new Post();
-		id = require('mongoose').Types.ObjectId();
-	}); 
+    beforeEach(function() {
+        p = new Post();
+        id = require('mongoose').Types.ObjectId();
+    });
 
-	afterEach(function() {
-		p = {};
-	});
+    afterEach(function() {
+        p = {};
+    });
 
-	it('should be invalid if no userId is present', function(done) {
-		p.validate(function(err) {
-			expect(err.errors.userId).to.exist;
-			done();
-		});
-	});
+    it('should be invalid if no userId is present', function(done) {
+        p.validate(function(err) {
+            expect(err.errors.userId).to.exist;
+            done();
+        });
+    });
 
-	it('should be invalid if no title is present', function(done) {
-		p.userId = id;
+    it('should be invalid if no title is present', function(done) {
+        p.userId = id;
 
-		p.validate(function(err) {
-			expect(err.errors.title).to.exist;
-			done();
-		});
-	});
+        p.validate(function(err) {
+            expect(err.errors.title).to.exist;
+            done();
+        });
+    });
 
-	it('it should be invalid if title exceeds maxlength', function(done) {
-		var titleA = Array(142).join('a');
-		p.userId = id;
-		p.title = titleA;
+    it('it should be invalid if title exceeds maxlength', function(done) {
+        var titleA = Array(142).join('a');
+        p.userId = id;
+        p.title = titleA;
 
-		p.validate(function(err) {
-			expect(err.errors.title).to.exist;
-			done();
-		});
-	});
+        p.validate(function(err) {
+            expect(err.errors.title).to.exist;
+            done();
+        });
+    });
 
-	it('should be invalid if description exceeds maxlength', function(done) {
-		var descriptionA = Array(1026).join('a');
-		p.userId = id;
-		p.title = 'Some string.';
-		p.description = descriptionA;
+    it('should be invalid if description exceeds maxlength', function(done) {
+        var descriptionA = Array(1026).join('a');
+        p.userId = id;
+        p.title = 'Some string.';
+        p.description = descriptionA;
 
-		p.validate(function(err) {
-			expect(err.errors.description).to.exist;
-			done();
-		});
-	});
+        p.validate(function(err) {
+            expect(err.errors.description).to.exist;
+            done();
+        });
+    });
 
-	it('should be invalid if image is not present', function(done) {
-		p.userId = id;
-		p.title = 'Some string.';
-		p.description = 'Some description.';
+    it('should be invalid if image is not present', function(done) {
+        p.userId = id;
+        p.title = 'Some string.';
+        p.description = 'Some description.';
 
-		p.validate(function(err) {
-			expect(err.errors.image).to.exist;
-			done();
-		});
-	});
+        p.validate(function(err) {
+            expect(err.errors.image).to.exist;
+            done();
+        });
+    });
 
-	it('should be invalid if no category is provided', function(done) {
-		p.userId = id;
-		p.title = 'Some string.';
-		p.description = 'Some description.';
-		p.image = '09fa8e6734a7ce';
+    it('should be invalid if no category is provided', function(done) {
+        p.userId = id;
+        p.title = 'Some string.';
+        p.description = 'Some description.';
+        p.image = '09fa8e6734a7ce';
 
-		p.validate(function(err) {
-			expect(err.errors.category).to.exist;
-			done();
-		});
-	});
+        p.validate(function(err) {
+            expect(err.errors.category).to.exist;
+            done();
+        });
+    });
 
-	it('should be valid', function(done) {
-		p.userId = id;
-		p.title = 'Some title.';
-		p.description = 'Some description.';
-		p.image = '09fa8e6734a7ce';
-		p.category = 1;
+    it('should be valid', function(done) {
+        p.userId = id;
+        p.title = 'Some title.';
+        p.description = 'Some description.';
+        p.image = '09fa8e6734a7ce';
+        p.category = 1;
 
-		p.validate(function(err) {
-			expect(err).to.equal(null);
-			done();
-		});
-	});
+        p.validate(function(err) {
+            expect(err).to.equal(null);
+            done();
+        });
+    });
 
-	it('should be valid, too', function(done) {
-		p.userId = id;
-		p.title = 'Some title.';
-		p.image = '09fa8e6734a7ce';
-		p.category = 1;
+    it('should be valid, too', function(done) {
+        p.userId = id;
+        p.title = 'Some title.';
+        p.image = '09fa8e6734a7ce';
+        p.category = 1;
 
-		p.validate(function(err) {
-			expect(err).to.equal(null);
-			done();
-		});		
-	});
+        p.validate(function(err) {
+            expect(err).to.equal(null);
+            done();
+        });
+    });
 });

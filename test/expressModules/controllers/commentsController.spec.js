@@ -16,358 +16,358 @@ var mockHttp = require('node-mocks-http');
 var sinon = require('sinon');
 require('sinon-mongoose');
 var sinonStubPromise = require('sinon-stub-promise');
-sinonStubPromise(sinon); 
+sinonStubPromise(sinon);
 
 // Require mongoose.
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
 describe('Comments controller', function() {
-	describe('create_comment', function() {
-		var res, id1, id2, id3, err,
-				comment, next, save;
-		var sandbox = sinon.sandbox.create();
-		var reqWithUser, reqWithoutUser;
+    describe('create_comment', function() {
+        var res, id1, id2, id3, err,
+                comment, next, save;
+        var sandbox = sinon.sandbox.create();
+        var reqWithUser, reqWithoutUser;
 
-		beforeEach(function() {
-			res = mockHttp.createResponse();	
-			id1 = mongoose.Types.ObjectId();
-			id2 = mongoose.Types.ObjectId();
-			id3 = mongoose.Types.ObjectId();	
-			next = sandbox.spy();
-			save = sandbox.stub(Comment.prototype, 'save');
-			
-			reqWithUser = mockHttp.createRequest({
-				method: 'POST',
-				url: '/comments',
-				user: {
-					_id: id1
-				},
-				body: {
-					postId: id2, 
-					content: 'Some comment.'
-				}
-			});
+        beforeEach(function() {
+            res = mockHttp.createResponse();
+            id1 = mongoose.Types.ObjectId();
+            id2 = mongoose.Types.ObjectId();
+            id3 = mongoose.Types.ObjectId();
+            next = sandbox.spy();
+            save = sandbox.stub(Comment.prototype, 'save');
 
-			reqWithoutUser = mockHttp.createRequest({
-				method: 'POST',
-				url: '/comments',
-				body: {
-					postId: id1,
-					userId: id2
-				}
-			});
-		});
+            reqWithUser = mockHttp.createRequest({
+                method: 'POST',
+                url: '/comments',
+                user: {
+                    _id: id1
+                },
+                body: {
+                    postId: id2,
+                    content: 'Some comment.'
+                }
+            });
 
-		afterEach(function() {
-			sandbox.restore();
-			res = {};
-			comment = {};
-			err = {};
-			reqWithUser = {};
-			reqWithoutUser = {};
-		});
+            reqWithoutUser = mockHttp.createRequest({
+                method: 'POST',
+                url: '/comments',
+                body: {
+                    postId: id1,
+                    userId: id2
+                }
+            });
+        });
 
-		it('Should send response with 401 status if no user is authenticated', function() {
-			commentsController.create_comment(reqWithoutUser, res);
+        afterEach(function() {
+            sandbox.restore();
+            res = {};
+            comment = {};
+            err = {};
+            reqWithUser = {};
+            reqWithoutUser = {};
+        });
 
-			var data = JSON.parse(res._getData());
-			expect(res.statusCode).to.equal(401);
-			expect(data.message).to.equal('Please authenticate.');
-		});
+        it('Should send response with 401 status if no user is authenticated', function() {
+            commentsController.create_comment(reqWithoutUser, res);
 
-		it('Makes all the appropriate calls when everyting goes right', function(done) {
-			comment = new Comment({
-				_id: id3,
-				userId: id1,
-				postId: id2,
-				content: 'Some comment.'
-			});
+            var data = JSON.parse(res._getData());
+            expect(res.statusCode).to.equal(401);
+            expect(data.message).to.equal('Please authenticate.');
+        });
 
-			save.returnsPromise().resolves(comment); 
+        it('Makes all the appropriate calls when everyting goes right', function(done) {
+            comment = new Comment({
+                _id: id3,
+                userId: id1,
+                postId: id2,
+                content: 'Some comment.'
+            });
 
-			commentsController.create_comment(reqWithUser, res, next).then(function() {
-				var data = JSON.parse(res._getData());
+            save.returnsPromise().resolves(comment);
 
-				expect(res.statusCode).to.equal(200);
-				expect(data.content).to.exist;
-				expect(save.called).to.equal(true);
-				expect(next.withArgs(comment).calledOnce).to.equal(true);
-				done();	
-			});
-		});
+            commentsController.create_comment(reqWithUser, res, next).then(function() {
+                var data = JSON.parse(res._getData());
 
-		it('responds with err when comment.save() rejects', function(done) {
-			err = {
-				errors: {
-					message: 'Some error message.'
-				}
-			};
+                expect(res.statusCode).to.equal(200);
+                expect(data.content).to.exist;
+                expect(save.called).to.equal(true);
+                expect(next.withArgs(comment).calledOnce).to.equal(true);
+                done();
+            });
+        });
 
-			save.returnsPromise().rejects(err); 
+        it('responds with err when comment.save() rejects', function(done) {
+            err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            };
 
-			commentsController.create_comment(reqWithUser, res, next).then(function() {
-				var data = JSON.parse(res._getData());
+            save.returnsPromise().rejects(err);
 
-				expect(save.called).to.equal(true);
-				expect(res.statusCode).to.equal(500);
-				expect(data.errors).to.exist;
-				done();
-			});
-		});
-	});
+            commentsController.create_comment(reqWithUser, res, next).then(function() {
+                var data = JSON.parse(res._getData());
 
-	describe('push_and_save_comment middleware', function() {
-		var id1, id2, id3, comment, user, post;
-		var sandbox = sinon.sandbox.create();
+                expect(save.called).to.equal(true);
+                expect(res.statusCode).to.equal(500);
+                expect(data.errors).to.exist;
+                done();
+            });
+        });
+    });
 
-		beforeEach(function() {
-			id1 = mongoose.Types.ObjectId();
-			id2 = mongoose.Types.ObjectId();
-			id3 = mongoose.Types.ObjectId();	
+    describe('push_and_save_comment middleware', function() {
+        var id1, id2, id3, comment, user, post;
+        var sandbox = sinon.sandbox.create();
 
-			comment = new Comment({
-				_id: id1,
-				userId: id2,
-				postId: id3,
-				content: 'Some message.'
-			});
-		});
+        beforeEach(function() {
+            id1 = mongoose.Types.ObjectId();
+            id2 = mongoose.Types.ObjectId();
+            id3 = mongoose.Types.ObjectId();
 
-		afterEach(function() {
-			sandbox.restore();
-			comment = {};
-			user = {};
-			post = {};
-		});
+            comment = new Comment({
+                _id: id1,
+                userId: id2,
+                postId: id3,
+                content: 'Some message.'
+            });
+        });
 
-		it('makes the appropriate calls when everyting goes right', function(done) {
-			user = new User({
-				_id: id2,
-				comments: []
-			});
+        afterEach(function() {
+            sandbox.restore();
+            comment = {};
+            user = {};
+            post = {};
+        });
 
-			post = new Post({
-				_id: id3, 
-				comments: []
-			});
+        it('makes the appropriate calls when everyting goes right', function(done) {
+            user = new User({
+                _id: id2,
+                comments: []
+            });
 
-			var saveUser = sandbox.stub(User.prototype, 'save');
-			var savePost = sandbox.stub(Post.prototype, 'save');
-			var promiseAll = sandbox.stub(Promise, 'all');
+            post = new Post({
+                _id: id3,
+                comments: []
+            });
 
-			var userMock = sandbox.mock(User);
-			var postMock = sandbox.mock(Post);
+            var saveUser = sandbox.stub(User.prototype, 'save');
+            var savePost = sandbox.stub(Post.prototype, 'save');
+            var promiseAll = sandbox.stub(Promise, 'all');
 
-			userMock
-				.expects('findById')
-				.chain('exec')
-				.resolves(user);
+            var userMock = sandbox.mock(User);
+            var postMock = sandbox.mock(Post);
 
-			postMock
-				.expects('findById')
-				.chain('exec')
-				.resolves(post);
+            userMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(user);
 
-			saveUser.returnsPromise().resolves();
-			savePost.returnsPromise().resolves();
-			promiseAll.returnsPromise().resolves([user, post]);
-			
-			commentsController.push_and_save_comment(comment).then(function() {
-				expect(promiseAll.called).to.equal(true);
-				userMock.verify();
-				postMock.verify();
-				expect(saveUser.called).to.equal(true);
-				expect(savePost.called).to.equal(true); 
-				done();
-			});
-		});
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(post);
 
-		it('logs error to the console when Promise.all() rejects', function(done) {
-			var consoleLog = sandbox.spy(console, 'log');
-			var promiseAll = sandbox.stub(Promise, 'all');
-			var saveUser = sandbox.stub(User.prototype, 'save');
-			var savePost = sandbox.stub(Post.prototype, 'save');
+            saveUser.returnsPromise().resolves();
+            savePost.returnsPromise().resolves();
+            promiseAll.returnsPromise().resolves([user, post]);
 
-			var err = {
-				errors: {
-					message: 'Some error message.'
-				}
-			}
+            commentsController.push_and_save_comment(comment).then(function() {
+                expect(promiseAll.called).to.equal(true);
+                userMock.verify();
+                postMock.verify();
+                expect(saveUser.called).to.equal(true);
+                expect(savePost.called).to.equal(true);
+                done();
+            });
+        });
 
-			promiseAll.returnsPromise().rejects(err);
+        it('logs error to the console when Promise.all() rejects', function(done) {
+            var consoleLog = sandbox.spy(console, 'log');
+            var promiseAll = sandbox.stub(Promise, 'all');
+            var saveUser = sandbox.stub(User.prototype, 'save');
+            var savePost = sandbox.stub(Post.prototype, 'save');
 
-			commentsController.push_and_save_comment(comment).then(function() {
-				expect(promiseAll.called).to.equal(true);
-				expect(saveUser.called).to.equal(false);
-				expect(savePost.called).to.equal(false);
-				expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
-				done();
-			});
-		});
-	});
+            var err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            }
 
-	describe('delete_comment', function() {
-		var reqWithUser, reqWithoutUser, res, 
-				id1, id2, id3, id4, id5, 
-				comment, commentMock, remove;
-		var sandbox = sinon.sandbox.create();
+            promiseAll.returnsPromise().rejects(err);
 
-		beforeEach(function() {
-			res = mockHttp.createResponse();
-			id1 = mongoose.Types.ObjectId();
-			id2 = mongoose.Types.ObjectId();
-			id3 = mongoose.Types.ObjectId();
-			id4 = mongoose.Types.ObjectId();
-			id5 = mongoose.Types.ObjectId();
+            commentsController.push_and_save_comment(comment).then(function() {
+                expect(promiseAll.called).to.equal(true);
+                expect(saveUser.called).to.equal(false);
+                expect(savePost.called).to.equal(false);
+                expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
+                done();
+            });
+        });
+    });
 
-			reqWithUser = mockHttp.createRequest({
-				method: 'DELETE',
-				url: '/comments',
-				user: {
-					_id: id1
-				},
-				body: {
-					comment: {
-						_id: id3,
-						postId: id2, 
-						userId: id1,
-						content: 'Some comment.'	
-					}
-				}
-			});
+    describe('delete_comment', function() {
+        var reqWithUser, reqWithoutUser, res,
+                id1, id2, id3, id4, id5,
+                comment, commentMock, remove;
+        var sandbox = sinon.sandbox.create();
 
-			reqWithoutUser = mockHttp.createRequest({
-				method: 'DELETE',
-				url: '/comments',
-				body: {
-					comment: {
-						_id: id3,
-						postId: id2, 
-						userId: id1,
-						content: 'Some comment.'	
-					}
-				}
-			});
+        beforeEach(function() {
+            res = mockHttp.createResponse();
+            id1 = mongoose.Types.ObjectId();
+            id2 = mongoose.Types.ObjectId();
+            id3 = mongoose.Types.ObjectId();
+            id4 = mongoose.Types.ObjectId();
+            id5 = mongoose.Types.ObjectId();
 
-			res = mockHttp.createResponse();
+            reqWithUser = mockHttp.createRequest({
+                method: 'DELETE',
+                url: '/comments',
+                user: {
+                    _id: id1
+                },
+                body: {
+                    comment: {
+                        _id: id3,
+                        postId: id2,
+                        userId: id1,
+                        content: 'Some comment.'
+                    }
+                }
+            });
 
-			comment = new Comment({
-				_id: id2,
-				userId: id1,
-				postId: id3,
-				content: 'Some message.'
-			});
+            reqWithoutUser = mockHttp.createRequest({
+                method: 'DELETE',
+                url: '/comments',
+                body: {
+                    comment: {
+                        _id: id3,
+                        postId: id2,
+                        userId: id1,
+                        content: 'Some comment.'
+                    }
+                }
+            });
 
-			commentMock = sandbox.mock(Comment);
+            res = mockHttp.createResponse();
 
-			remove = sandbox.stub(Comment.prototype, 'remove');
-		});
+            comment = new Comment({
+                _id: id2,
+                userId: id1,
+                postId: id3,
+                content: 'Some message.'
+            });
 
-		afterEach(function() {
-			reqWithoutUser = {};
-			reqWithUser = {};
-			res = {};
-			sandbox.restore();
-			comment = {};
-		});
+            commentMock = sandbox.mock(Comment);
 
-		it('returns 401 if no user is authenticated', function() {
-			commentsController.delete_comment(reqWithoutUser, res);
+            remove = sandbox.stub(Comment.prototype, 'remove');
+        });
 
-			var data = JSON.parse(res._getData());
+        afterEach(function() {
+            reqWithoutUser = {};
+            reqWithUser = {};
+            res = {};
+            sandbox.restore();
+            comment = {};
+        });
 
-			expect(res.statusCode).to.equal(401);
-			expect(data.message).to.equal('Please authenticate.');
-		});
+        it('returns 401 if no user is authenticated', function() {
+            commentsController.delete_comment(reqWithoutUser, res);
 
-		it('successfully deletes comment and sends 200 res', function(done) {			
-			commentMock
-				.expects('findById')
-				.chain('exec')
-				.resolves(comment);
+            var data = JSON.parse(res._getData());
 
-			remove.returnsPromise().resolves(comment);
+            expect(res.statusCode).to.equal(401);
+            expect(data.message).to.equal('Please authenticate.');
+        });
 
-			commentsController.delete_comment(reqWithUser, res).then(function() {
-				var data = JSON.parse(res._getData());
+        it('successfully deletes comment and sends 200 res', function(done) {
+            commentMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(comment);
 
-				commentMock.verify();
-				expect(remove.called).to.equal(true);
-				expect(res.statusCode).to.equal(200);
-				done();
-			});
-		});
+            remove.returnsPromise().resolves(comment);
 
-		it('responds with 403 status when req.user._id does not match comment owner', function(done) {
-			var comment1 = new Comment({
-				_id: id4, 
-				postId: id3,
-				userId: id5,
-				content: 'Some message.'
-			});
+            commentsController.delete_comment(reqWithUser, res).then(function() {
+                var data = JSON.parse(res._getData());
 
-			commentMock
-				.expects('findById')
-				.chain('exec')
-				.resolves(comment1);
+                commentMock.verify();
+                expect(remove.called).to.equal(true);
+                expect(res.statusCode).to.equal(200);
+                done();
+            });
+        });
 
-			commentsController.delete_comment(reqWithUser, res).then(function() {
-				var data = JSON.parse(res._getData());
+        it('responds with 403 status when req.user._id does not match comment owner', function(done) {
+            var comment1 = new Comment({
+                _id: id4,
+                postId: id3,
+                userId: id5,
+                content: 'Some message.'
+            });
 
-				commentMock.verify();
-				expect(remove.called).to.equal(false);
-				expect(res.statusCode).to.equal(403);
-				expect(data.message).to.equal('You are not authorized to perform this operation.');
-				done();
-			});
-		})
+            commentMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(comment1);
 
-		it('responds with err when Comment.findById() rejects', function(done) {
-			var err = {
-				errors: {
-					message: 'Some error message.'
-				}
-			};
+            commentsController.delete_comment(reqWithUser, res).then(function() {
+                var data = JSON.parse(res._getData());
 
-			commentMock
-				.expects('findById')
-				.chain('exec')
-				.rejects(err);
+                commentMock.verify();
+                expect(remove.called).to.equal(false);
+                expect(res.statusCode).to.equal(403);
+                expect(data.message).to.equal('You are not authorized to perform this operation.');
+                done();
+            });
+        })
 
-			commentsController.delete_comment(reqWithUser, res).then(function() {
-				var data = JSON.parse(res._getData());
+        it('responds with err when Comment.findById() rejects', function(done) {
+            var err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            };
 
-				commentMock.verify();
-				expect(res.statusCode).to.equal(500);
-				expect(data.errors).to.exist;
-				done();
-			});
-		});
+            commentMock
+                .expects('findById')
+                .chain('exec')
+                .rejects(err);
 
-		it('responds with err when comment.remove() rejects', function(done) {
-			var err = {
-				errors: {
-					message: 'Some error message.'
-				}
-			};
-			
-			commentMock
-				.expects('findById')
-				.chain('exec')
-				.resolves(comment);		
+            commentsController.delete_comment(reqWithUser, res).then(function() {
+                var data = JSON.parse(res._getData());
 
-			remove.returnsPromise().rejects(err);
+                commentMock.verify();
+                expect(res.statusCode).to.equal(500);
+                expect(data.errors).to.exist;
+                done();
+            });
+        });
 
-			commentsController.delete_comment(reqWithUser, res).then(function() {
-				var data = JSON.parse(res._getData());
+        it('responds with err when comment.remove() rejects', function(done) {
+            var err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            };
 
-				commentMock.verify();
-				expect(remove.called).to.equal(true);
-				expect(res.statusCode).to.equal(500);
-				expect(data.errors).to.exist;
-				done();
-			});
-		})
-	});
+            commentMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(comment);
+
+            remove.returnsPromise().rejects(err);
+
+            commentsController.delete_comment(reqWithUser, res).then(function() {
+                var data = JSON.parse(res._getData());
+
+                commentMock.verify();
+                expect(remove.called).to.equal(true);
+                expect(res.statusCode).to.equal(500);
+                expect(data.errors).to.exist;
+                done();
+            });
+        })
+    });
 });

@@ -4,32 +4,32 @@ import React, { Component, PropTypes } from 'react'
 // import SinglePostNoSessionButton from '../components/SinglePostNoSessionButton'
 
 export default class SinglePostButtons extends Component {
-	render() {
-		const { post, currentUser, currentUserVoteExists,
-	 					createVote, deleteVote, toggleModal } = this.props
-		return (
-			<div>
-				{
-					!currentUser &&
-					<SinglePostNoSessionButton 
-						toggleModal={toggleModal} /> 
-				}
+    render() {
+        const { post, currentUser, currentUserVoteExists,
+                        createVote, deleteVote, toggleModal } = this.props
+        return (
+            <div>
+                {
+                    !currentUser &&
+                    <SinglePostNoSessionButton
+                        toggleModal={toggleModal} />
+                }
 
-				{
-					currentUser && !currentUserVoteExists &&
-					<SinglePostVoteButton
-						currentUser={currentUser}
-						post={post}
-						createVote={createVote} />
-				}
+                {
+                    currentUser && !currentUserVoteExists &&
+                    <SinglePostVoteButton
+                        currentUser={currentUser}
+                        post={post}
+                        createVote={createVote} />
+                }
 
-				{
-					currentUser && currentUserVoteExists &&
-					<SinglePostUnvoteButton />
-				}
-			</div>
-		)
-	}
+                {
+                    currentUser && currentUserVoteExists &&
+                    <SinglePostUnvoteButton />
+                }
+            </div>
+        )
+    }
 }
 
 SinglePostButtons.propTypes = {

@@ -5,37 +5,37 @@ import CommentFormCounter from '../components/CommentFormCounter'
 // import updateCounter from '../actions/commentForm'
 
 export default class CommentFormContainer extends Component {
-	render() {
-		const { counterValue, updateCounterValue, currentUser } = this.props
-		const disabledValue = (currentUser) => {
-			if(!currentUser) {
-				return true
-			}
+    render() {
+        const { counterValue, updateCounterValue, currentUser } = this.props
+        const disabledValue = (currentUser) => {
+            if(!currentUser) {
+                return true
+            }
 
-			return false
-		}
+            return false
+        }
 
-		return (
-			<div>
-				<CommentForm disabledValue={disabledValue(currentUser)} 
-					updateCounterValue={updateCounterValue}  />
-				<CommentFormCounter value={counterValue}/>
-			</div>
-		)
-	}
+        return (
+            <div>
+                <CommentForm disabledValue={disabledValue(currentUser)}
+                    updateCounterValue={updateCounterValue}  />
+                <CommentFormCounter value={counterValue}/>
+            </div>
+        )
+    }
 }
 
 const mapStateToProps = state => {
-	counterValue: state.commentUI.commentFormCounter,
-	currentUser: state.currentUser
+    counterValue: state.commentUI.commentFormCounter,
+    currentUser: state.currentUser
 }
 
 const mapDispatchToProps = dispatch => {
-	updateCounterValue: dispatch(requestUpdateCounter)
+    updateCounterValue: dispatch(requestUpdateCounter)
 }
 
 CommentFormContainer.propTypes = {
-	counterValue: PropTypes.number,
-	updateCounterValue: PropTypes.func,
-	currentUser: PropTypes.object 
+    counterValue: PropTypes.number,
+    updateCounterValue: PropTypes.func,
+    currentUser: PropTypes.object
 }

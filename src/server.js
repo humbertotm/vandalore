@@ -9,20 +9,20 @@ var createVotePromise = require('./expressAppModules/controllers/votesController
 
 var port = 3000;
 
-app.use(bodyParser.json());                                     
-app.use(bodyParser.urlencoded({extended: true}));               
-app.use(bodyParser.text());                                    
-app.use(bodyParser.json({ type: 'application/json'}));  
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.text());
+app.use(bodyParser.json({ type: 'application/json'}));
 
 
 app.get('/', function(req, res) {
-	res.send('Welcome to app, homie!');
+    res.send('Welcome to app, homie!');
 });
 
 // app.post('/votes', createVotePromise);
 
 app.listen(port, function() {
-	console.log('Listening on port ' + port);
+    console.log('Listening on port ' + port);
 });
 
 

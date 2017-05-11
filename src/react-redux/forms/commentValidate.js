@@ -1,9 +1,9 @@
 export default commentValidate = () => {
-	// Some validation here.
+    // Some validation here.
 }
 
 export default exceededLength = values => {
-	if(values.comment.length > 140) {
-		return true
-	} else return false
+    if(values.comment.length > 140) {
+        return true
+    } else return false
 }

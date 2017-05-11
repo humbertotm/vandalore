@@ -5,32 +5,32 @@ import LogInModal from '../components/LogInModal'
 import SignUpModal from '../components/SignUpModal'
 
 class App extends Component {
-	constructor(props) {
-		this.toggleModal = this.toggleModal.bind(this)
-	}
+    constructor(props) {
+        this.toggleModal = this.toggleModal.bind(this)
+    }
 
-	// Toggles modal specified in params.
-	toggleModal(modal) {
-		const { toggleModal } = this.props
-		toggleModal(modal)
-	} 
+    // Toggles modal specified in params.
+    toggleModal(modal) {
+        const { toggleModal } = this.props
+        toggleModal(modal)
+    }
 
-	render() {
-		return (
-			<div>
-				<NavBar 
-					onLogInClick={this.toggleModal} 
-					onSignUpClick={this.toggleModal} />
+    render() {
+        return (
+            <div>
+                <NavBar
+                    onLogInClick={this.toggleModal}
+                    onSignUpClick={this.toggleModal} />
 
-				<LogInModal toggleLogInModal={this.toggleModal} />
-				<SignUpModal toggleSignUpModal={this.toggleModal}/>
+                <LogInModal toggleLogInModal={this.toggleModal} />
+                <SignUpModal toggleSignUpModal={this.toggleModal}/>
 
-				// Children of the parent Route.
-				{this.props.children}
+                // Children of the parent Route.
+                {this.props.children}
 
-			</div>
-		)
-	}
+            </div>
+        )
+    }
 }
 
 App.PropTypes = {
@@ -38,7 +38,7 @@ App.PropTypes = {
 }
 
 mapDispatchToProps = dispatch => {
-	// toggleModal: dispatch(toggleModal())
+    // toggleModal: dispatch(toggleModal())
 }
 
-export default connect(mapDispatchToProps)(App) 
+export default connect(mapDispatchToProps)(App)
