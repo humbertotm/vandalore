@@ -41,7 +41,7 @@ var userSchema = new Schema({
         },
         token: String,
         email: String,
-        name: String,
+        displayName: String,
         profilePicUrl: String
     },
 
