@@ -1,11 +1,18 @@
+// Controller
+var posts_controller = require('../controllers/postsController');
+
+var postRoutes = require('express').Router();
+
 // Create a new post.
-app.post('/posts', /* passport.authenticate() */ posts_controller.create_post);
+postRoutes.post('/posts', posts_controller.create_post);
 
 // Delete an existing post.
-app.delete('/posts/:postId', /* passport.authenticate() */ posts_controller.delete_post);
+postRoutes.delete('/posts', posts_controller.delete_post);
 
 // Get a post.
-app.get('/posts/:postId', posts_controller.get_post);
+postRoutes.get('/posts/:postId', posts_controller.get_post);
 
 // *** Get a post's comments.
-app.get('/posts/:postId/comments', posts_controller.get_post_comments);
+postRoutes.get('/posts/:postId/comments', posts_controller.get_post_comments);
+
+module.exports = postRoutes;
