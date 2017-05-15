@@ -6,6 +6,8 @@ var expressJWT = require('express-jwt');
 
 var postRoutes = require('express').Router();
 
+postRoutes.use(expressJWT());
+
 // Create a new post.
 postRoutes.post('/', posts_controller.create_post);
 
