@@ -4,6 +4,9 @@ var mongoose = require('mongoose');
 var morgan = require('morgan');
 var bodyParser = require('body-parser');
 
+// DB config
+var configDB = require('./config/database');
+
 // Import routes
 var auth = require('./expressAppModules/routes/auth');
 var categories = require('./expressAppModules/routes/categories');
@@ -14,6 +17,9 @@ var comments = require('./expressAppModules/routes/comments');
 var relationships = require('./expressAppModules/routes/relationships');
 
 var port = 3000;
+
+// Connect to Db
+mongoose.connect(configDB.url);
 
 // Double check the middleware used.
 app.use(morgan('dev'));
