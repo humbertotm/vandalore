@@ -14,6 +14,7 @@ module.exports.get_posts = function(req, res) {
         res.json(category.posts);
     })
     .catch(function(err) {
+        // What about 404's?
         res.status(500).json(err);
     });
 }
@@ -35,6 +36,7 @@ module.exports.get_more_posts = function(req, res) {
         });
     })
     .catch(function(err) {
+        // What about 404's?
         res.status(500).json(err);
     });
 }

@@ -4,35 +4,17 @@ var User = require('../models/usersModel');
 // Require hashPassword util function.
 var hashPassword = require('../utils').hashPassword;
 
-/*
-export.create_user_local = function(req, res) {
-        *** This is for local strategy. ***
-
-        Store new instance of User with key values provided
-        in req.body.
-
-        Save new document in Users collection.
-
-        On success:
-            Return newly created User document as JSON.
-
-        On error:
-            Return error message.
-};
-*/
-
-
-export.delete_user = function(req, res) {
+module.exports.delete_user = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
-        var userId = req.body.user._id;
+        var userId = req.body._id;
 
         User.findById(userId).exec().then(function(user) {
             if(user._id === authUserId) {
-                return user.remove().then(function(removedUser) {
+                return user.remove().then(function() {
                     res.status(200).json({
                         message: 'User successfully deleted.',
-                        user: removedUser
+                        user: userId
                     });
                 });
             }
@@ -43,7 +25,8 @@ export.delete_user = function(req, res) {
             });
         })
         .catch(function(err) {
-            res.json(err);
+            // What about 404's?
+            res.status(500).json(err);
         });
     }
 
@@ -53,16 +36,16 @@ export.delete_user = function(req, res) {
     });
 }
 
-export.update_user_profile = function(req, res) {
+module.exports.update_user_profile = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
-        var userId = req.body.user._id;
+        var userId = req.body._id;
 
         User.findById(userId).exec().then(function(user) {
             if(user._id === authUserId) {
-                user.username === req.body.user.username || user.username;
-                user.profilePic === req.body.user.profilePic || user.profilePic;
-                user.bio === req.body.user.bio || user.bio;
+                user.username === req.body.username || user.username;
+                user.profilePicUrl === req.file.location || user.profilePicUrl;
+                user.bio === req.body.bio || user.bio;
 
                 return user.save().then(function(updatedUser) {
                     res.json({
@@ -70,64 +53,67 @@ export.update_user_profile = function(req, res) {
                         user: updatedUser
                     });
                 });
+            } else {
+                // If authenticated user does not match owner of user doc.
+                res.status(403).json({
+                    message: 'You are not authorized to perform this operation.'
+                });
             }
-
-            // If authenticated user does not match owner of user doc.
-            res.status(403).json({
-                message: 'You are not authorized to perform this operation.'
-            });
         })
         .catch(function(err) {
-            res.json(err);
+            // What about 404's?
+            res.status(500).json(err);
+        });
+    } else {
+        // If no authenticated user
+        res.status(401).json({
+            message: 'Please authenticate.'
         });
     }
-
-    // If no authenticated user
-    res.status(401).json({
-        message: 'Please authenticate.'
-    });
 }
 
-export.update_user_local_email = function(req, res) {
+module.exports.update_user_local_email = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
-        var userId = req.body.userId;
+        var userId = req.body._id;
 
         User.findById(userId).exec().then(function(user) {
             if(user._id === authUserId) {
                 if(user.local) {
-                    user.local.email = req.user.email || user.local.email;
+                    user.local.email = req.body.email || user.local.email;
                     return user.save().then(function(updatedUser) {
                         res.json({
                             message: 'Email successfully updated.',
                             user: updatedUser
                         });
                     });
+                } else {
+                    // If user has no local credentials
+                    res.status(403).json({
+                        message: 'You have not set any local credentials.'
+                    });
                 }
-
-                // If user has no local credentials
+            } else {
+                // If authenticated user does not match owner of user doc.
                 res.status(403).json({
-                    message: 'You have not set any local credentials.'
+                    message: 'You are not authorized to perform this operation.'
                 });
             }
-
-            // If authenticated user does not match owner of user doc.
-            res.status(403).json({
-                message: 'You are not authorized to perform this operation.'
-            });
         })
         .catch(function(err) {
-            res.json(err);
+            // What about 404's?
+            res.status(500).json(err);
+        });
+    } else {
+        // If no authenticated user
+        res.status(401).json({
+            message: 'Please authenticate.'
         });
     }
-
-    // If no authenticated user
-    res.status(401).json({
-        message: 'Please authenticate.'
-    });
 }
 
-export.update_user_password = function(req, res) {
+// Still pending.
+module.exports.update_user_password = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
         var userId = req.body.userId;
@@ -171,18 +157,19 @@ export.update_user_password = function(req, res) {
     });
 }
 
-export.get_user = function(req, res) {
+module.exports.get_user = function(req, res) {
     var userId = req.params.userId;
 
     User.findById(userId).exec().then(function(user) {
         res.json(user);
     })
     .catch(function(err) {
-        res.json(err);
+        // What about 404's?
+        res.status(500).json(err);
     });
 }
 
-export.get_user_votes = function(req, res) {
+module.exports.get_user_votes = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
 
@@ -193,17 +180,18 @@ export.get_user_votes = function(req, res) {
             res.json(user.votes);
         })
         .catch(function(err) {
-            res.json(err);
+            // What about 404's?
+            res.status(500).json(err);
+        });
+    } else {
+        // If no authenticated user
+        res.status(401).json({
+            message: 'Please authenticate.'
         });
     }
-
-    // If no authenticated user
-    res.status(401).json({
-        message: 'Please authenticate.'
-    });
 }
 
-export.get_user_posts = function(req, res) {
+module.exports.get_user_posts = function(req, res) {
     var userId = req.params.userId;
 
     User.findById(userId).populate({
@@ -213,11 +201,12 @@ export.get_user_posts = function(req, res) {
         res.json(user.posts);
     })
     .catch(function(err) {
-        res.json(err);
+        // What about 404's?
+        res.status(500).json(err);
     });
 }
 
-export.get_user_feed_posts = function(req, res) {
+module.exports.get_user_feed_posts = function(req, res) {
     /*
         ***
             This is a more complex piece of code.

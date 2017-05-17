@@ -63,14 +63,14 @@ module.exports.push_and_save_comment = function(comment) {
 module.exports.delete_comment = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
-        var commentId = req.body.comment._id;
+        var commentId = req.body._id;
 
         return Comment.findById(commentId).exec().then(function(comment) {
             if(comment.userId === authUserId) {
-                return comment.remove().then(function(removedComment) {
+                return comment.remove().then(function() {
                     res.json({
                         message: 'Comment successfully deleted.',
-                        comment: removedComment
+                        commentId: commentId
                     });
                 });
             } else {
@@ -81,6 +81,7 @@ module.exports.delete_comment = function(req, res) {
             }
         })
         .catch(function(err) {
+            // What about 404's?
             res.status(500).json(err);
         });
     } else {
