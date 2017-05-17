@@ -3,11 +3,17 @@ var Schema = mongoose.Schema;
 mongoose.Promise = require('bluebird');
 
 var relationshipSchema = new Schema({
-    followedId: { type: Schema.Types.ObjectId, ref: 'User',
-                                required: true },
+    followedId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
 
-    followerId: { type: Schema.Types.ObjectId, ref: 'User',
-                                required: true, index: true }
+    followerId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    }
 },
 {
     timestamps: true
