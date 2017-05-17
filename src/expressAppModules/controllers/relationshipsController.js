@@ -31,7 +31,7 @@ module.exports.create_relationship = function(req, res, next) {
 }
 
 // Pushes and saves newly created relationship into
-// follower.activeRelationships and followed.passiveRelationship.
+// follower.following and followed.followers.
 module.exports.push_and_save_rel = function(rel) {
     var followerId = rel.followerId;
     var followedId = rel.followedId;
@@ -44,18 +44,18 @@ module.exports.push_and_save_rel = function(rel) {
     var promisedDocs = Promise.all(promises);
 
 
-    function pushIntoActiveAndPassiveRel(doc) {
+    function pushIntoFollowingAndFollowers(doc) {
         if(doc._id === followerId) {
-            doc.activeRelationships.push(rel);
+            doc.following.push(followedId);
             return doc.save();
         } else {
-            doc.passiveRelationships.push(rel);
+            doc.followers.push(followerId);
             return doc.save();
         }
     }
 
     return promisedDocs.then(function(docs) {
-        docs.map(pushIntoActiveAndPassiveRel);
+        docs.map(pushIntoFollowingAndFollowers);
     })
     .catch(function(err) {
         console.log(err);

@@ -21,7 +21,7 @@ sinonStubPromise(sinon);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-describe('Relationships controller', function() {
+describe.only('Relationships controller', function() {
     describe('create_relationship', function() {
         var id1, id2, id3, rel, follower, followed, res,
             reqWithUser, reqWithoutUser, next, save;
@@ -116,7 +116,7 @@ describe('Relationships controller', function() {
         });
     });
 
-    describe.skip('push_and_save_rel middleware', function() {
+    describe('push_and_save_rel middleware', function() {
         var id1, id2, id3, rel, save, follower, followed,
             consoleLog, promiseAll, userMock;
         var sandbox = sinon.sandbox.create();
@@ -132,12 +132,12 @@ describe('Relationships controller', function() {
 
             follower = new User({
                 _id: id1,
-                activeRelationships: []
+                following: []
             });
 
             followed: new User({
                 _id: id2,
-                passiveRelationships: []
+                followers: []
             });
 
             rel = new Relationship({
@@ -156,25 +156,23 @@ describe('Relationships controller', function() {
             rel = {};
         });
 
-        it('makes the appropriate calls when everything goes right', function() {
+        it.skip('makes the appropriate calls when everything goes right', function(done) {
+            // Not working.
             // Not sure expectations are correctly defined.
-            /*
             userMock
                 .expects('findById')
-                .twice()
                 .chain('exec')
-                .twice();
+                .resolves();
 
             promiseAll.returnsPromise().resolves([follower, followed]);
 
             relController.push_and_save_rel(rel).then(function() {
-                // userMock.verify();
+                userMock.verify();
                 expect(promiseAll.called).to.equal(true);
                 // Calling only once.
                 // expect(save.callCount).to.equal(1);
                 done();
             });
-            */
         });
     });
 

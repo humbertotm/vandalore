@@ -3,10 +3,6 @@ var Schema = mongoose.Schema;
 mongoose.Promise = require('bluebird');
 var bcrypt = require('bcryptjs');
 
-var localCredsSchema = new Schema({
-
-});
-
 var userSchema = new Schema({
     local: {
         email: {
@@ -105,33 +101,33 @@ var userSchema = new Schema({
         default: []
     }],
 
-    /*
     following: [{
         type: Schema.Types.ObjectId,
         ref: 'User',
         default: []
-    }]
-    */
+    }],
 
+    /*
     activeRelationships: [{
         type: Schema.Types.ObjectId,
         ref: 'Relationship',
         default: []
     }],
+    */
 
-    /*
     followers: [{
         type: Schema.Types.ObjectId,
         ref: 'User',
         default: []
-    }]
-    */
+    }],
 
+    /*
     passiveRelationships: [{
         type: Schema.Types.ObjectId,
         ref: 'Relationship',
         default: []
     }],
+    */
 
     notifications: [{
         type: Schema.Types.ObjectId,
