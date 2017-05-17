@@ -21,7 +21,7 @@ sinonStubPromise(sinon);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-describe.only('Relationships controller', function() {
+describe('Relationships controller', function() {
     describe('create_relationship', function() {
         var id1, id2, id3, rel, follower, followed, res,
             reqWithUser, reqWithoutUser, next, save;
@@ -90,7 +90,7 @@ describe.only('Relationships controller', function() {
                 expect(save.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
                 expect(data.followedId).to.exist;
-                expect(next.withArgs(rel).calledOnce).to.equal(true);
+                expect(next.calledOnce).to.equal(true);
                 done();
             });
         });

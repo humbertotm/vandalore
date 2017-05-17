@@ -97,7 +97,7 @@ describe('Votes controller', function() {
                 expect(save.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
                 expect(data).to.exist;
-                expect(next.withArgs(vote).calledOnce).to.equal(true);
+                expect(next.calledOnce).to.equal(true);
                 done();
             });
         });
@@ -116,13 +116,14 @@ describe('Votes controller', function() {
 
                 expect(res.statusCode).to.equal(500);
                 expect(data.errors).to.exist;
+                expect(next.called).to.equal(false);
                 done();
             });
         });
     });
 
     describe('push_and_save_vote middleware', function() {
-        var vote, user, post, next, id1, id2, id3;
+        var vote, user, post, next, id1, id2, id3, req, res;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -137,6 +138,12 @@ describe('Votes controller', function() {
             });
 
             next = sandbox.spy();
+
+            req = mockHttp.createRequest({
+                vote: vote
+            });
+
+            res = mockHttp.createResponse();
         });
 
         afterEach(function() {
@@ -179,13 +186,13 @@ describe('Votes controller', function() {
             promiseAll.returnsPromise().resolves([user, post]);
 
             // Call the middleware function.
-            votesController.push_and_save_vote(vote, next).then(function() {
+            votesController.push_and_save_vote(req, res, next).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 userMock.verify();
                 postMock.verify();
                 expect(userSave.called).to.equal(true);
                 expect(postSave.called).to.equal(true);
-                expect(next.withArgs(post).calledOnce).to.equal(true);
+                expect(next.calledOnce).to.equal(true);
                 done();
             });
         });
@@ -203,7 +210,7 @@ describe('Votes controller', function() {
             promiseAll.returnsPromise().rejects(err);
 
             // Call middleware function.
-            votesController.push_and_save_vote(vote, next).then(function() {
+            votesController.push_and_save_vote(req, res, next).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 expect(next.called).to.equal(false);
                 expect(consoleLog.called).to.equal(true);
@@ -213,8 +220,9 @@ describe('Votes controller', function() {
     });
 
     describe('check_vote_count middleware', function() {
-        var id1, id2, id3, id4, post,
-                notification, save, next;
+        var id1, id2, id3, id4, id5, hotPost, freshPost,
+            notification, save, next, reqWithHotPost,
+            reqWithFreshPost, res;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -222,15 +230,41 @@ describe('Votes controller', function() {
             id2 = mongoose.Types.ObjectId();
             id3 = mongoose.Types.ObjectId();
             id4 = mongoose.Types.ObjectId();
-            notification = new Notification();
+            id5 = mongoose.Types.ObjectId();
+
             next = sinon.spy();
             save = sandbox.stub(Notification.prototype, 'save');
 
+            notification = new Notification({});
+
+            hotPost = new Post({
+                _id: id1,
+                userId: id5,
+                votes: [id2, id3, id4]
+            });
+
+            freshPost = new Post({
+                _id: id1,
+                userId: id5,
+                votes: [id2, id3]
+            });
+
+
+            reqWithHotPost = mockHttp.createRequest({
+                post: hotPost
+            });
+
+            reqWithFreshPost = mockHttp.createRequest({
+                post: freshPost
+            });
+
+            res = mockHttp.createResponse();
 
         });
 
         afterEach(function() {
-            post = {};
+            hotPost = {};
+            freshPost = {};
             notification = {};
             sandbox.restore();
         });
@@ -239,40 +273,27 @@ describe('Votes controller', function() {
             // post.votes.length must exceed votesForHot();
             // Stub votesForHot() so the test does not depend on the actual
             // return value of the function.
-            post = new Post({
-                _id: id1,
-                votes: [id2, id3, id4]
-            });
 
             save.returnsPromise().resolves(notification);
 
             // Call middleware function.
-            votesController.check_vote_count(post, next).then(function() {
+            votesController.check_vote_count(reqWithHotPost, res, next).then(function() {
                 expect(save.called).to.equal(true);
-                expect(next.withArgs(notification).calledOnce).to.equal(true);
+                expect(next.calledOnce).to.equal(true);
                 done();
             });
         });
 
         it('does not call save if voteCount is not enough', function() {
-            post = new Post({
-                _id: id1,
-                votes: [id2, id3]
-            });
-
             save.returnsPromise().resolves();
 
             // Call middleware function.
-            votesController.check_vote_count(post, next);
+            votesController.check_vote_count(reqWithFreshPost, res, next);
             expect(save.called).to.equal(false);
+            expect(next.called).to.equal(false);
         });
 
         it('logs error to the console', function(done) {
-            post = new Post({
-                _id: id1,
-                votes: [id2, id3, id4]
-            });
-
             var consoleLog = sandbox.stub(console, 'log');
 
             var err = {
@@ -284,7 +305,7 @@ describe('Votes controller', function() {
             save.returnsPromise().rejects(err);
 
             // Call middleware function.
-            votesController.check_vote_count(post, next).then(function() {
+            votesController.check_vote_count(reqWithHotPost, res, next).then(function() {
                 expect(save.called).to.equal(true);
                 expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
                 done();
@@ -294,7 +315,8 @@ describe('Votes controller', function() {
 
     describe('push_and_save_notification middleware', function() {
         var sandbox = sinon.sandbox.create();
-        var id1, id2, notification, user;
+        var id1, id2, notification, user,
+            req, res, save, consoleLog, userMock;
 
         beforeEach(function() {
             id1 = mongoose.Types.ObjectId();
@@ -304,12 +326,24 @@ describe('Votes controller', function() {
                 _id: id2,
                 userId: id1
             });
+
+            req = mockHttp.createRequest({
+                notification: notification
+            });
+
+            res = mockHttp.createResponse();
+
+            save = sandbox.stub(User.prototype, 'save');
+            consoleLog = sandbox.stub(console, 'log');
+            userMock = sandbox.mock(User);
         });
 
         afterEach(function() {
             sandbox.restore();
             user = {};
             notification = {};
+            req = {};
+            res = {};
         });
 
         it('calls User.findById and user. save() when everything goes right', function(done) {
@@ -318,18 +352,15 @@ describe('Votes controller', function() {
                 notifications: []
             });
 
-            var userMock = sandbox.mock(User);
-
             userMock
                 .expects('findById')
                 .chain('exec')
                 .resolves(user);
 
-            var save = sandbox.stub(User.prototype, 'save');
             save.returnsPromise().resolves();
 
             // Call middleware function.
-            votesController.push_and_save_notification(notification).then(function() {
+            votesController.push_and_save_notification(req, res).then(function() {
                 userMock.verify();
                 expect(save.called).to.equal(true);
                 done();
@@ -348,17 +379,14 @@ describe('Votes controller', function() {
                 }
             };
 
-            var userMock = sandbox.mock(User);
-
             userMock
                 .expects('findById')
                 .chain('exec')
                 .rejects(err);
 
-            var consoleLog = sandbox.stub(console, 'log');
-
-            votesController.push_and_save_notification(notification).then(function() {
+            votesController.push_and_save_notification(req, res).then(function() {
                 userMock.verify();
+                expect(save.called).to.equal(false);
                 expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
                 done();
             });
@@ -376,19 +404,14 @@ describe('Votes controller', function() {
                 }
             };
 
-            var userMock = sandbox.mock(User);
-
             userMock
                 .expects('findById')
                 .chain('exec')
                 .resolves(user);
 
-            var save = sandbox.stub(User.prototype, 'save');
             save.returnsPromise().rejects(err);
 
-            var consoleLog = sandbox.stub(console, 'log');
-
-            votesController.push_and_save_notification(notification).then(function() {
+            votesController.push_and_save_notification(req, res).then(function() {
                 userMock.verify();
                 expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
                 done();

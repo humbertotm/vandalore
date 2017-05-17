@@ -21,7 +21,8 @@ module.exports.create_comment = function(req, res, next) {
 
         return comment.save().then(function(createdComment) {
             res.json(createdComment);
-            next(createdComment);
+            req.comment = createdComment;
+            next();
         })
         .catch(function(err) {
             res.status(500).json(err);
@@ -35,7 +36,8 @@ module.exports.create_comment = function(req, res, next) {
 }
 
 // Push and save newly created comment into user and post doc refs.
-module.exports.push_and_save_comment = function(comment) {
+module.exports.push_and_save_comment = function(req, res) {
+    var comment = req.comment;
     var userId = comment.userId;
     var postId = comment.postId;
 

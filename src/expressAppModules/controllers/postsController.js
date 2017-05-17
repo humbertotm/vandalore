@@ -23,7 +23,8 @@ module.exports.create_post = function(req, res, next) {
 
         return post.save().then(function(createdPost) {
             res.json(createdPost);
-            next(createdPost);
+            req.post = createdPost;
+            next();
         })
         .catch(function(err) {
             res.status(500).json(err);
@@ -37,7 +38,8 @@ module.exports.create_post = function(req, res, next) {
 }
 
 // Pushes and saves new post in corresponding user and category ref.
-module.exports.push_and_save_post = function(post) {
+module.exports.push_and_save_post = function(req, res) {
+    var post = req.post;
     var userId = post.userId;
     var categoryId = post.category;
 
