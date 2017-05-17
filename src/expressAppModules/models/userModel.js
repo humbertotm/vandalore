@@ -105,11 +105,27 @@ var userSchema = new Schema({
         default: []
     }],
 
+    /*
+    following: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: []
+    }]
+    */
+
     activeRelationships: [{
         type: Schema.Types.ObjectId,
         ref: 'Relationship',
         default: []
     }],
+
+    /*
+    followers: [{
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: []
+    }]
+    */
 
     passiveRelationships: [{
         type: Schema.Types.ObjectId,
