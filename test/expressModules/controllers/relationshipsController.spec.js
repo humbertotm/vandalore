@@ -198,11 +198,9 @@ describe('Relationships controller', function() {
                     _id: id1
                 },
                 body: {
-                    relationship: {
-                        _id: id4,
-                        followerId: id1,
-                        followedId: id2
-                    }
+                    _id: id4,
+                    followerId: id1,
+                    followedId: id2
                 }
             });
 
@@ -210,7 +208,7 @@ describe('Relationships controller', function() {
                 method: 'DELETE',
                 url: '/relationships',
                 body: {
-                    followedId: id2
+                    _id: id2
                 }
             });
 
@@ -250,7 +248,7 @@ describe('Relationships controller', function() {
                 .chain('exec')
                 .resolves(rel);
 
-            remove.returnsPromise().resolves(rel);
+            remove.returnsPromise().resolves();
 
             relController.delete_relationship(reqWithUser, res).then(function() {
                 var data = JSON.parse(res._getData());
@@ -259,7 +257,7 @@ describe('Relationships controller', function() {
                 expect(remove.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
                 expect(data.message).to.equal('Relationship successfully deleted.');
-                expect(data.relationship).to.exist;
+                expect(data.relationshipId).to.exist;
                 done();
             });
         });
