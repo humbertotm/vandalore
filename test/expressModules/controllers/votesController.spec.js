@@ -423,11 +423,9 @@ describe('Votes controller', function() {
                     _id: id1
                 },
                 body: {
-                    vote: {
-                        _id: id3,
-                        postId: id2,
-                        userId: id1
-                    }
+                    _id: id3,
+                    postId: id2,
+                    userId: id1
                 }
             });
 
@@ -435,11 +433,9 @@ describe('Votes controller', function() {
                 method: 'DELETE',
                 url: '/votes',
                 body: {
-                    vote: {
-                        _id: id3,
-                        postId: id2,
-                        userId: id1
-                    }
+                    _id: id3,
+                    postId: id2,
+                    userId: id1
                 }
             });
 
@@ -472,7 +468,7 @@ describe('Votes controller', function() {
                 .chain('exec')
                 .resolves(vote);
 
-            remove.returnsPromise().resolves(vote);
+            remove.returnsPromise().resolves();
 
             votesController.delete_vote(reqWithUser, res).then(function() {
                 var data = JSON.parse(res._getData());
@@ -482,7 +478,7 @@ describe('Votes controller', function() {
                 expect(res.statusCode).to.equal(200);
                 expect(data.message).to.exist;
                 expect(data.message).to.equal('Vote successfully deleted.');
-                expect(data.vote).to.exist;
+                expect(data.voteId).to.exist;
                 done();
             });
         });

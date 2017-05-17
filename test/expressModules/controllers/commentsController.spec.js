@@ -228,12 +228,10 @@ describe('Comments controller', function() {
                     _id: id1
                 },
                 body: {
-                    comment: {
-                        _id: id3,
-                        postId: id2,
-                        userId: id1,
-                        content: 'Some comment.'
-                    }
+                    _id: id3,
+                    postId: id2,
+                    userId: id1,
+                    content: 'Some comment.'
                 }
             });
 
@@ -241,12 +239,10 @@ describe('Comments controller', function() {
                 method: 'DELETE',
                 url: '/comments',
                 body: {
-                    comment: {
-                        _id: id3,
-                        postId: id2,
-                        userId: id1,
-                        content: 'Some comment.'
-                    }
+                    _id: id3,
+                    postId: id2,
+                    userId: id1,
+                    content: 'Some comment.'
                 }
             });
 
@@ -287,7 +283,7 @@ describe('Comments controller', function() {
                 .chain('exec')
                 .resolves(comment);
 
-            remove.returnsPromise().resolves(comment);
+            remove.returnsPromise().resolves();
 
             commentsController.delete_comment(reqWithUser, res).then(function() {
                 var data = JSON.parse(res._getData());
@@ -295,6 +291,9 @@ describe('Comments controller', function() {
                 commentMock.verify();
                 expect(remove.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
+                expect(data.commentId).to.exist;
+                expect(data.message).to.exist;
+                expect(data.message).to.equal('Comment successfully deleted.');
                 done();
             });
         });

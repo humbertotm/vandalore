@@ -243,14 +243,12 @@ describe('Posts controller', function() {
                     _id: id1
                 },
                 body: {
-                    post: {
-                        _id: id2,
-                        userId: id1,
-                        title: 'Some title',
-                        description: 'Some description',
-                        image: 'some-image-url',
-                        category: 1
-                    }
+                    _id: id2,
+                    userId: id1,
+                    title: 'Some title',
+                    description: 'Some description',
+                    image: 'some-image-url',
+                    category: 1
                 }
             });
 
@@ -258,13 +256,11 @@ describe('Posts controller', function() {
                 method: 'DELETE',
                 url: '/posts',
                 body: {
-                    post: {
-                        _id: id2,
-                        title: 'Some title',
-                        description: 'Some description',
-                        image: 'some-image-url',
-                        category: 1
-                    }
+                    _id: id2,
+                    title: 'Some title',
+                    description: 'Some description',
+                    image: 'some-image-url',
+                    category: 1
                 }
             });
 
@@ -298,7 +294,7 @@ describe('Posts controller', function() {
                 .chain('exec')
                 .resolves(post);
 
-            remove.returnsPromise().resolves(post);
+            remove.returnsPromise().resolves();
 
             postsController.delete_post(reqWithUser, res).then(function() {
                 var data = JSON.parse(res._getData());
@@ -307,7 +303,7 @@ describe('Posts controller', function() {
                 expect(remove.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
                 expect(data.message).to.equal('Post successfully deleted.');
-                expect(data.post).to.exist;
+                expect(data.postId).to.exist;
                 done();
             });
         });
