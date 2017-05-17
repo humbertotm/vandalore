@@ -110,14 +110,14 @@ module.exports.push_and_save_notification = function(notification) {
 module.exports.delete_vote = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
-        var voteId = req.body.vote._id;
+        var voteId = req.body._id;
 
         return Vote.findById(voteId).exec().then(function(vote) {
             if(vote.userId === authUserId) {
-                return vote.remove().then(function(removedVote) {
+                return vote.remove().then(function() {
                     res.json({
                         message: "Vote successfully deleted.",
-                        vote: removedVote
+                        voteId: voteId
                     });
                 });
             } else {
@@ -128,6 +128,7 @@ module.exports.delete_vote = function(req, res) {
             }
         })
         .catch(function(err) {
+            // What about 404's?
             res.status(500).json(err);
         })
     } else {

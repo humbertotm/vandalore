@@ -19,6 +19,7 @@ module.exports.get_notifications = function(req, res) {
             res.json(notifications);
         })
         .catch(function(err) {
+            // What about 404's?
             res.status(500).json(err);
         });
     } else {
@@ -49,6 +50,7 @@ module.exports.mark_notification_as_read = function(req, res) {
             }
         })
         .catch(function(err) {
+            // What about 404's?
             res.status(500).json(err);
         });
     } else {

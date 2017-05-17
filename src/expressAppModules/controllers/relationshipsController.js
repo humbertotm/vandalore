@@ -66,14 +66,14 @@ module.exports.push_and_save_rel = function(rel) {
 module.exports.delete_relationship = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
-        var relationshipId = req.body.relationship._id;
+        var relationshipId = req.body._id;
 
         return Relationship.findById(relationshipId).exec().then(function(rel) {
             if(rel.followerId === authUserId) {
-                return rel.remove().then(function(removedRel) {
+                return rel.remove().then(function() {
                     res.status(200).json({
                         message: 'Relationship successfully deleted.',
-                        relationship: removedRel
+                        relationshipId: relationshipId
                     });
                 });
             } else {
@@ -84,6 +84,7 @@ module.exports.delete_relationship = function(req, res) {
             }
         })
         .catch(function(err) {
+            // What about 404's?
             res.status(500).json(err);
         });
     } else {

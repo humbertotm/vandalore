@@ -65,14 +65,14 @@ module.exports.push_and_save_post = function(post) {
 module.exports.delete_post = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
-        var postId = req.body.post._id;
+        var postId = req.body._id;
 
         return Post.findById(postId).exec().then(function(post) {
             if(post.userId === authUserId) {
-                return post.remove().then(function(removedPost) {
+                return post.remove().then(function() {
                     res.json({
                         message: 'Post successfully deleted.',
-                        post: removedPost
+                        postId: postId
                     });
                 });
             } else {
@@ -83,6 +83,7 @@ module.exports.delete_post = function(req, res) {
             }
         })
         .catch(function(err) {
+            // What about 404's?
             res.status(500).json(err);
         });
     } else {
@@ -104,6 +105,7 @@ module.exports.get_post = function(req, res) {
         res.json(post);
     })
     .catch(function(err) {
+        // What about 404's?
         res.status(500).json(err);
     });
 }
@@ -119,6 +121,7 @@ module.exports.get_post_comments = function(req, res) {
         res.json(post.comments);
     })
     .catch(function(err) {
+        // What about 404's?
         res.status(500).json(err);
     });
 }
