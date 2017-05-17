@@ -17,7 +17,8 @@ module.exports.create_relationship = function(req, res, next) {
 
         return relationship.save().then(function(createdRel) {
             res.json(createdRel);
-            next(createdRel);
+            req.relationship = createdRel;
+            next();
         })
         .catch(function(err) {
             res.status(500).json(err);
@@ -32,7 +33,8 @@ module.exports.create_relationship = function(req, res, next) {
 
 // Pushes and saves newly created relationship into
 // follower.following and followed.followers.
-module.exports.push_and_save_rel = function(rel) {
+module.exports.push_and_save_rel = function(req, res) {
+    var rel = req.relationship;
     var followerId = rel.followerId;
     var followedId = rel.followedId;
 

@@ -22,7 +22,8 @@ module.exports.create_vote = function(req, res, next) {
 
         return vote.save().then(function(createdVote) {
             res.json(createdVote);
-            next(createdVote);
+            req.vote = createdVote;
+            next();
         })
         .catch(function(err) {
             res.status(500).json(err);
@@ -36,7 +37,8 @@ module.exports.create_vote = function(req, res, next) {
 }
 
 // Pushes newly created vote into refs in user and post docs.
-module.exports.push_and_save_vote = function(vote, next) {
+module.exports.push_and_save_vote = function(req, res, next) {
+    var vote = req.vote;
     var userId = vote.userId;
     var postId = vote.postId;
 
@@ -54,7 +56,8 @@ module.exports.push_and_save_vote = function(vote, next) {
 
     function passPostToNext(doc) {
         if(doc.constructor.modelName === 'Post') {
-            next(doc);
+            req.post = doc;
+            next();
         } else {
             return;
         }
@@ -73,7 +76,8 @@ module.exports.push_and_save_vote = function(vote, next) {
 
 // Checks the vote count for post to verify if there is
 // a need to create a notification.
-module.exports.check_vote_count = function(post, next) {
+module.exports.check_vote_count = function(req, res, next) {
+    var post = req.post;
     var voteCount = post.votes.length;
 
     if(voteCount > votesForHot()) {
@@ -83,7 +87,8 @@ module.exports.check_vote_count = function(post, next) {
         notification.message = 'Your post has reached the Hot Page!';
 
         return notification.save().then(function(notification) {
-            next(notification);
+            req.notification = notification;
+            next();
         })
         .catch(function(err) {
             console.log(err);
@@ -94,7 +99,8 @@ module.exports.check_vote_count = function(post, next) {
 }
 
 // Pushes and saves newly created notification to corresponding user.
-module.exports.push_and_save_notification = function(notification) {
+module.exports.push_and_save_notification = function(req, res) {
+    var notification = req.notification;
     var userId = notification.userId;
 
     return User.findById(userId).exec().then(function(user) {

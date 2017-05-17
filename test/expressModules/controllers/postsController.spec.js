@@ -99,7 +99,7 @@ describe('Posts controller', function() {
                 expect(save.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
                 expect(data._id).to.exist;
-                expect(next.withArgs(post).calledOnce).to.equal(true);
+                expect(next.calledOnce).to.equal(true);
                 done();
             });
         });
@@ -128,7 +128,7 @@ describe('Posts controller', function() {
     describe('push_and_save_post middleware', function() {
         var id1, id2, id3, userMock, categoryMock,
                 consoleLog, promiseAll, post, user, category,
-                userSave, categorySave;
+                userSave, categorySave, req, res;
 
         var sandbox = sinon.sandbox.create();
 
@@ -155,6 +155,12 @@ describe('Posts controller', function() {
                 _id: 1,
                 posts: []
             });
+
+            req = mockHttp.createRequest({
+                post: post
+            });
+
+            res = mockHttp.createResponse();
 
             userMock = sandbox.mock(User);
             categoryMock = sandbox.mock(Category);
@@ -186,7 +192,7 @@ describe('Posts controller', function() {
             categorySave.returnsPromise().resolves();
             promiseAll.returnsPromise().resolves([user, category]);
 
-            postsController.push_and_save_post(post).then(function() {
+            postsController.push_and_save_post(req, res).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 userMock.verify();
                 categoryMock.verify();
@@ -205,7 +211,7 @@ describe('Posts controller', function() {
 
             promiseAll.returnsPromise().rejects(err);
 
-            postsController.push_and_save_post(post).then(function() {
+            postsController.push_and_save_post(req, res).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 expect(userSave.called).to.equal(false);
                 expect(categorySave.called).to.equal(false);

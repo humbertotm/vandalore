@@ -92,7 +92,7 @@ describe('Comments controller', function() {
                 expect(res.statusCode).to.equal(200);
                 expect(data.content).to.exist;
                 expect(save.called).to.equal(true);
-                expect(next.withArgs(comment).calledOnce).to.equal(true);
+                expect(next.calledOnce).to.equal(true);
                 done();
             });
         });
@@ -118,7 +118,7 @@ describe('Comments controller', function() {
     });
 
     describe('push_and_save_comment middleware', function() {
-        var id1, id2, id3, comment, user, post;
+        var id1, id2, id3, comment, user, post, req, res;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -132,6 +132,12 @@ describe('Comments controller', function() {
                 postId: id3,
                 content: 'Some message.'
             });
+
+            req = mockHttp.createRequest({
+                comment: comment
+            });
+
+            res = mockHttp.createResponse();
         });
 
         afterEach(function() {
@@ -173,7 +179,7 @@ describe('Comments controller', function() {
             savePost.returnsPromise().resolves();
             promiseAll.returnsPromise().resolves([user, post]);
 
-            commentsController.push_and_save_comment(comment).then(function() {
+            commentsController.push_and_save_comment(req, res).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 userMock.verify();
                 postMock.verify();
@@ -197,7 +203,7 @@ describe('Comments controller', function() {
 
             promiseAll.returnsPromise().rejects(err);
 
-            commentsController.push_and_save_comment(comment).then(function() {
+            commentsController.push_and_save_comment(req, res).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 expect(saveUser.called).to.equal(false);
                 expect(savePost.called).to.equal(false);
