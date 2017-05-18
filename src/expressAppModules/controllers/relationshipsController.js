@@ -11,6 +11,12 @@ module.exports.create_relationship = function(req, res, next) {
     if(req.user) {
         var authUserId = req.user._id;
 
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!checkForHexRegExp.test(authUserId)) {
+            throw new Error('authUserId provided is not an instance of ObjectId.');
+        }
+
         var relationship = new Relationship();
         relationship.followerId = authUserId;
         relationship.followedId = req.body.followedId;
@@ -47,7 +53,6 @@ module.exports.push_and_save_rel = function(req, res) {
 
     var promisedDocs = Promise.all(promises);
 
-
     function pushIntoFollowingAndFollowers(doc) {
         if(doc._id === followerId) {
             doc.following.push(followedId);
@@ -72,6 +77,12 @@ module.exports.delete_relationship = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
         var relationshipId = req.body._id;
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(relationshipId)) {
+            thro(w new Error('authUserId and/or relationshipId provided is not an instance of ObjectId && checkForHexRegExp.test(relationshipId.');
+        }
 
         return Relationship.findById(relationshipId).exec().then(function(rel) {
             if(rel === null) {

@@ -12,6 +12,12 @@ module.exports.create_post = function(req, res, next) {
     if(req.user) {
         var userId = req.user._id;
 
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!checkForHexRegExp.test(userId)) {
+            throw new Error('userId provided is not an instance of ObjectId.');
+        }
+
         var post = new Post();
         post.title = req.body.title;
         post.description = req.body.description;
@@ -69,6 +75,12 @@ module.exports.delete_post = function(req, res) {
         var authUserId = req.user._id;
         var postId = req.body._id;
 
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(postId))) {
+            throw new Error('authUserId and/or postId provided is not an instance of ObjectId.');
+        }
+
         return Post.findById(postId).exec().then(function(post) {
             if(post === null) {
                 res.status(404).json({
@@ -106,6 +118,12 @@ module.exports.delete_post = function(req, res) {
 module.exports.get_post = function(req, res) {
     var postId = req.params.postId;
 
+    var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+    if(!checkForHexRegExp.test(postId)) {
+        throw new Error('postId provided is not an instance of ObjectId.');
+    }
+
     return Post.findById(postId).populate({
         path: 'comments',
         options: { limit: 20 }
@@ -127,6 +145,12 @@ module.exports.get_post = function(req, res) {
 // Gets a post's comments.
 module.exports.get_post_comments = function(req, res) {
     var postId = req.params.postId;
+
+    var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+    if(!checkForHexRegExp.test(postId)) {
+        throw new Error('postId provided is not an instance of ObjectId.');
+    }
 
     return Post.findById(postId).populate({
         path: 'comments',

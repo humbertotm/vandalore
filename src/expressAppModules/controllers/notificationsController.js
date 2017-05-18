@@ -11,6 +11,12 @@ module.exports.get_notifications = function(req, res) {
     if(req.user) {
         var userId = req.user._id;
 
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!checkForHexRegExp.test(userId)) {
+            throw new Error('userId provided is not an instance of ObjectId.');
+        }
+
         return User.findById(userId).populate({
             path: 'notifications',
             options: { limit: 5 }
@@ -41,6 +47,12 @@ module.exports.mark_notification_as_read = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
         var notificationId = req.body.notification._id;
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(notificationId))) {
+            throw new Error('authUserId and/or notificationId provided is not an instance of ObjectId.');
+        }
 
         return Notification.findById(notificationId).exec().then(function(notification) {
             if(notification === null) {

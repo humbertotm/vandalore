@@ -7,12 +7,18 @@ var Post = require('../models/postModel');
 var  mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-// Creates a comment and sends it in reponse..
+// Creates a comment and sends it in reponse.
 module.exports.create_comment = function(req, res, next) {
     if(req.user) {
         var userId = req.user._id;
         var postId = req.body.postId;
         var content = req.body.content;
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(userId) && checkForHexRegExp.test(postId))) {
+            throw new Error('userId and/or postId provided is not an instance of ObjectId.');
+        }
 
         var comment = new Comment();
         comment.postId = postId;
@@ -69,6 +75,12 @@ module.exports.delete_comment = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
         var commentId = req.body._id;
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(commentId))) {
+            throw new Error('userId and/or commentId provided is not an instance of ObjectId.');
+        }
 
         return Comment.findById(commentId).exec().then(function(comment) {
             if(comment === null) {
