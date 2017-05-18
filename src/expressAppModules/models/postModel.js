@@ -21,7 +21,7 @@ var postSchema = new Schema({
         maxlength: 1024
     },
 
-    image: {
+    imageUrl: {
         // Incorporate file upload to AWS S3 bucket
         type: String,
         required: true

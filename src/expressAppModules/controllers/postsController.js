@@ -15,9 +15,7 @@ module.exports.create_post = function(req, res, next) {
         var post = new Post();
         post.title = req.body.title;
         post.description = req.body.description;
-        // This is provisional.
-        // Don't know yet how image uploading will be handled.
-        post.image = req.body.image;
+        post.imageUrl = req.file.location;
         post.category = req.body.category;
         post.userId = userId;
 
