@@ -16,6 +16,12 @@ module.exports.create_vote = function(req, res, next) {
         var userId = req.user._id;
         var postId = req.body.postId;
 
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(userId) && checkForHexRegExp.test(postId))) {
+            throw new Error('userId and/or postId provided is not an instance of ObjectId.');
+        }
+
         var vote = new Vote();
         vote.userId = userId;
         vote.postId = postId;
@@ -126,6 +132,12 @@ module.exports.delete_vote = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
         var voteId = req.body._id;
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(voteId))) {
+            throw new Error('authUserId and/or voteId provided is not an instance of ObjectId.');
+        }
 
         return Vote.findById(voteId).exec().then(function(vote) {
             if(vote === null) {

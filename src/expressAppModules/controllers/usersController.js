@@ -9,6 +9,12 @@ module.exports.delete_user = function(req, res) {
         var authUserId = req.user._id;
         var userId = req.body._id;
 
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(userId))) {
+            throw new Error('authUserId and/or userId provided is not an instance of ObjectId.');
+        }
+
         User.findById(userId).exec().then(function(user) {
             if(user === null) {
                 res.status(404).json({
@@ -46,6 +52,12 @@ module.exports.update_user_profile = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
         var userId = req.body._id;
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(userId))) {
+            throw new Error('authUserId and/or userId provided is not an instance of ObjectId.');
+        }
 
         User.findById(userId).exec().then(function(user) {
             if(user === null) {
@@ -88,6 +100,12 @@ module.exports.update_user_local_email = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
         var userId = req.body._id;
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(userId))) {
+            throw new Error('authUserId and/or userId provided is not an instance of ObjectId.');
+        }
 
         User.findById(userId).exec().then(function(user) {
             if(user === null) {
@@ -136,6 +154,12 @@ module.exports.update_user_password = function(req, res) {
         var authUserId = req.user._id;
         var userId = req.body.userId;
 
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(userId))) {
+            throw new Error('authUserId and/or userId provided is not an instance of ObjectId.');
+        }
+
         User.findById(userId).exec().then(function(user) {
             if(user._id === authUserId) {
                 if(user.local) {
@@ -178,6 +202,12 @@ module.exports.update_user_password = function(req, res) {
 module.exports.get_user = function(req, res) {
     var userId = req.params.userId;
 
+    var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+    if(!checkForHexRegExp.test(userId)) {
+        throw new Error('userId provided is not an instance of ObjectId.');
+    }
+
     User.findById(userId).exec().then(function(user) {
         if(user === null) {
             res.status(404).json({
@@ -196,6 +226,12 @@ module.exports.get_user = function(req, res) {
 module.exports.get_user_votes = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!checkForHexRegExp.test(authUserId)) {
+            throw new Error('authUserId provided is not an instance of ObjectId.');
+        }
 
         User.findById(authUserId).populate({
             path: 'votes'
@@ -223,6 +259,12 @@ module.exports.get_user_votes = function(req, res) {
 
 module.exports.get_user_posts = function(req, res) {
     var userId = req.params.userId;
+
+    var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+    if(!checkForHexRegExp.test(userId)) {
+        throw new Error('userId provided is not an instance of ObjectId.');
+    }
 
     User.findById(userId).populate({
         path: 'posts',
