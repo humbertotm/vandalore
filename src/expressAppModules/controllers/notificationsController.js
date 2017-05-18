@@ -15,11 +15,17 @@ module.exports.get_notifications = function(req, res) {
             path: 'notifications',
             options: { limit: 5 }
         }).exec().then(function(user) {
+            if(user === null) {
+                res.status(404).json({
+                    message: 'User not found.'
+                });
+            }
+
             var notifications = user.notifications;
             res.json(notifications);
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {
@@ -37,6 +43,12 @@ module.exports.mark_notification_as_read = function(req, res) {
         var notificationId = req.body.notification._id;
 
         return Notification.findById(notificationId).exec().then(function(notification) {
+            if(notification === null) {
+                res.status(404).json({
+                    message: 'Notification not found.'
+                });
+            }
+
             if(notification.userId === authUserId) {
                 notification.read = true;
                 return notification.save().then(function(notif) {
@@ -50,7 +62,7 @@ module.exports.mark_notification_as_read = function(req, res) {
             }
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {

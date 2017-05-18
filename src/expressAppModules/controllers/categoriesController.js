@@ -11,10 +11,16 @@ module.exports.get_posts = function(req, res) {
         path: 'posts',
         options: { limit: 20 }
     }).exec().then(function(category) {
+        if(category === null) {
+            res.status(404).json({
+                message: 'Category not found.'
+            });
+        }
+
         res.json(category.posts);
     })
     .catch(function(err) {
-        // What about 404's?
+        // Fix this with error handling middleware.
         res.status(500).json(err);
     });
 }
@@ -24,6 +30,12 @@ module.exports.get_more_posts = function(req, res) {
     var maxId = req.params.maxId;
 
     return Category.findById(categoryId).exec().then(function(cat) {
+        if(cat === null) {
+            res.status(404).json({
+                message: 'Category not found.'
+            });
+        }
+
         var toSkip = cat.posts.indexOf(maxId);
         return cat.populate({
             path: 'posts',
@@ -36,7 +48,7 @@ module.exports.get_more_posts = function(req, res) {
         });
     })
     .catch(function(err) {
-        // What about 404's?
+        // Fix this with error handling middleware.
         res.status(500).json(err);
     });
 }

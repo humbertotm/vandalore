@@ -44,6 +44,7 @@ module.exports.push_and_save_post = function(req, res) {
     var categoryId = post.category;
 
     var promises = [
+        // What if any of these return null? Will the Promise reject?
         User.findById(userId).exec(),
         Category.findById(categoryId).exec()
     ];
@@ -59,6 +60,7 @@ module.exports.push_and_save_post = function(req, res) {
         docs.map(pushAndSave);
     })
     .catch(function(err) {
+        // Send this to error handling middleware.
         console.log(err);
     });
 }
@@ -70,6 +72,12 @@ module.exports.delete_post = function(req, res) {
         var postId = req.body._id;
 
         return Post.findById(postId).exec().then(function(post) {
+            if(post === null) {
+                res.status(404).json({
+                    message: 'Post not found.'
+                });
+            }
+
             if(post.userId === authUserId) {
                 return post.remove().then(function() {
                     res.json({
@@ -85,7 +93,7 @@ module.exports.delete_post = function(req, res) {
             }
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {
@@ -104,10 +112,16 @@ module.exports.get_post = function(req, res) {
         path: 'comments',
         options: { limit: 20 }
     }).exec().then(function(post) {
+        if(post === null) {
+            res.status(404).json({
+                message: 'Post not found.'
+            });
+        }
+
         res.json(post);
     })
     .catch(function(err) {
-        // What about 404's?
+        // Send this to error handling middleware.
         res.status(500).json(err);
     });
 }
@@ -120,10 +134,16 @@ module.exports.get_post_comments = function(req, res) {
         path: 'comments',
         options: { limit: 20 }
     }).exec().then(function(post) {
+        if(post === null) {
+            res.status(404).json({
+                message: 'Post not found.'
+            })
+        }
+
         res.json(post.comments);
     })
     .catch(function(err) {
-        // What about 404's?
+        // Sent this to error handling middleware.
         res.status(500).json(err);
     });
 }
