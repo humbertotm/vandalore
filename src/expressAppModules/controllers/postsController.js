@@ -31,7 +31,7 @@ module.exports.create_post = function(req, res, next) {
             next();
         })
         .catch(function(err) {
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // User not authenticated
@@ -65,7 +65,8 @@ module.exports.push_and_save_post = function(req, res) {
     })
     .catch(function(err) {
         // Send this to error handling middleware.
-        console.log(err);
+        err.logToConsole = true;
+        next(err);
     });
 }
 
@@ -103,8 +104,7 @@ module.exports.delete_post = function(req, res) {
             }
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // If no user is authenticated
@@ -137,8 +137,7 @@ module.exports.get_post = function(req, res) {
         res.json(post);
     })
     .catch(function(err) {
-        // Send this to error handling middleware.
-        res.status(500).json(err);
+        next(err);
     });
 }
 
@@ -165,7 +164,6 @@ module.exports.get_post_comments = function(req, res) {
         res.json(post.comments);
     })
     .catch(function(err) {
-        // Sent this to error handling middleware.
-        res.status(500).json(err);
+        next(err);
     });
 }

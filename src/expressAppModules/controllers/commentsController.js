@@ -31,8 +31,7 @@ module.exports.create_comment = function(req, res, next) {
             next();
         })
         .catch(function(err) {
-            // Fix this with error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // If no user is authenticated
@@ -65,8 +64,8 @@ module.exports.push_and_save_comment = function(req, res) {
         docs.map(pushAndSave);
     })
     .catch(function(err) {
-        // Send this to an error handling middleware.
-        console.log(err);
+        err.logToConsole = true;
+        next(err);
     });
 }
 
@@ -104,8 +103,7 @@ module.exports.delete_comment = function(req, res) {
             }
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // If no authenticated user

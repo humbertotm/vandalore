@@ -24,8 +24,7 @@ module.exports.get_posts = function(req, res) {
         res.json(category.posts);
     })
     .catch(function(err) {
-        // Fix this with error handling middleware.
-        res.status(500).json(err);
+        next(err);
     });
 }
 
@@ -62,7 +61,6 @@ module.exports.get_more_posts = function(req, res) {
         });
     })
     .catch(function(err) {
-        // Fix this with error handling middleware.
-        res.status(500).json(err);
+        next(err);
     });
 }
