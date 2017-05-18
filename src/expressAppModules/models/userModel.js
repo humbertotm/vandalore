@@ -67,7 +67,7 @@ var userSchema = new Schema({
 
     profilePicUrl: {
         type: String,
-        default: 'some-url',
+        default: 'default-pic-url',
         required: true
     },
 
