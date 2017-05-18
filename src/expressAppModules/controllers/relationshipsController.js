@@ -21,6 +21,7 @@ module.exports.create_relationship = function(req, res, next) {
             next();
         })
         .catch(function(err) {
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {
@@ -39,6 +40,7 @@ module.exports.push_and_save_rel = function(req, res) {
     var followedId = rel.followedId;
 
     var promises = [
+        // What if any of these returns null? Will the Promise reject?
         User.findById(followerId).exec(),
         User.findById(followedId).exec()
     ];
@@ -60,6 +62,7 @@ module.exports.push_and_save_rel = function(req, res) {
         docs.map(pushIntoFollowingAndFollowers);
     })
     .catch(function(err) {
+        // Send this to error handling middleware.
         console.log(err);
     });
 }
@@ -71,6 +74,12 @@ module.exports.delete_relationship = function(req, res) {
         var relationshipId = req.body._id;
 
         return Relationship.findById(relationshipId).exec().then(function(rel) {
+            if(rel === null) {
+                res.status(404).json({
+                    message: 'Relationship not found.'
+                });
+            }
+
             if(rel.followerId === authUserId) {
                 return rel.remove().then(function() {
                     res.status(200).json({
@@ -86,7 +95,7 @@ module.exports.delete_relationship = function(req, res) {
             }
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {

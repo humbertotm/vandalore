@@ -25,6 +25,7 @@ module.exports.create_comment = function(req, res, next) {
             next();
         })
         .catch(function(err) {
+            // Fix this with error handling middleware.
             res.status(500).json(err);
         });
     } else {
@@ -42,6 +43,7 @@ module.exports.push_and_save_comment = function(req, res) {
     var postId = comment.postId;
 
     var promises = [
+        // What if any of these return null? Will the Promise reject?
         User.findById(userId).exec(),
         Post.findById(postId).exec()
     ];
@@ -57,6 +59,7 @@ module.exports.push_and_save_comment = function(req, res) {
         docs.map(pushAndSave);
     })
     .catch(function(err) {
+        // Send this to an error handling middleware.
         console.log(err);
     });
 }
@@ -68,6 +71,12 @@ module.exports.delete_comment = function(req, res) {
         var commentId = req.body._id;
 
         return Comment.findById(commentId).exec().then(function(comment) {
+            if(comment === null) {
+                res.status(404).json({
+                    message: 'Comment not found.'
+                });
+            }
+
             if(comment.userId === authUserId) {
                 return comment.remove().then(function() {
                     res.json({
@@ -83,7 +92,7 @@ module.exports.delete_comment = function(req, res) {
             }
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {

@@ -10,6 +10,12 @@ module.exports.delete_user = function(req, res) {
         var userId = req.body._id;
 
         User.findById(userId).exec().then(function(user) {
+            if(user === null) {
+                res.status(404).json({
+                    message: 'User not found.'
+                });
+            }
+
             if(user._id === authUserId) {
                 return user.remove().then(function() {
                     res.status(200).json({
@@ -25,7 +31,7 @@ module.exports.delete_user = function(req, res) {
             });
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     }
@@ -42,6 +48,12 @@ module.exports.update_user_profile = function(req, res) {
         var userId = req.body._id;
 
         User.findById(userId).exec().then(function(user) {
+            if(user === null) {
+                res.status(404).json({
+                    message: 'User not found.'
+                });
+            }
+
             if(user._id === authUserId) {
                 user.username === req.body.username || user.username;
                 user.profilePicUrl === req.file.location || user.profilePicUrl;
@@ -61,7 +73,7 @@ module.exports.update_user_profile = function(req, res) {
             }
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {
@@ -78,6 +90,12 @@ module.exports.update_user_local_email = function(req, res) {
         var userId = req.body._id;
 
         User.findById(userId).exec().then(function(user) {
+            if(user === null) {
+                res.status(404).json({
+                    message: 'User not found.'
+                });
+            }
+
             if(user._id === authUserId) {
                 if(user.local) {
                     user.local.email = req.body.email || user.local.email;
@@ -101,7 +119,7 @@ module.exports.update_user_local_email = function(req, res) {
             }
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {
@@ -161,10 +179,16 @@ module.exports.get_user = function(req, res) {
     var userId = req.params.userId;
 
     User.findById(userId).exec().then(function(user) {
+        if(user === null) {
+            res.status(404).json({
+                message: 'User not found.'
+            });
+        }
+
         res.json(user);
     })
     .catch(function(err) {
-        // What about 404's?
+        // Send this to error handling middleware.
         res.status(500).json(err);
     });
 }
@@ -177,10 +201,16 @@ module.exports.get_user_votes = function(req, res) {
             path: 'votes'
             // options: { limit: 100 }
         }).exec().then(function(user) {
+            if(user === null) {
+                res.status(404).json({
+                    message: 'User not found.'
+                });
+            }
+
             res.json(user.votes);
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {
@@ -198,10 +228,16 @@ module.exports.get_user_posts = function(req, res) {
         path: 'posts',
         options: { limit: 100 }
     }).exec().then(function(user) {
+        if(user === null) {
+            res.status(404).json({
+                message: 'User not found.'
+            });
+        }
+
         res.json(user.posts);
     })
     .catch(function(err) {
-        // What about 404's?
+        // Send this to error handling middleware.
         res.status(500).json(err);
     });
 }

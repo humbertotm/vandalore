@@ -26,6 +26,7 @@ module.exports.create_vote = function(req, res, next) {
             next();
         })
         .catch(function(err) {
+            // Send this to error handling middleware.
             res.status(500).json(err);
         });
     } else {
@@ -43,6 +44,7 @@ module.exports.push_and_save_vote = function(req, res, next) {
     var postId = vote.postId;
 
     var promises = [
+        // What if any of these return null? Will the Promise reject?
         User.findById(userId).exec(),
         Post.findById(postId).exec()
     ];
@@ -70,6 +72,7 @@ module.exports.push_and_save_vote = function(req, res, next) {
     .catch(function(err) {
         // Verify that logging this errors is
         // not an expensive operation performance-wise.
+        // Send this to error handling middleware.
         console.log(err);
     });
 }
@@ -91,6 +94,7 @@ module.exports.check_vote_count = function(req, res, next) {
             next();
         })
         .catch(function(err) {
+            // Send this to error handling middleware.
             console.log(err);
         });
     } else {
@@ -104,10 +108,15 @@ module.exports.push_and_save_notification = function(req, res) {
     var userId = notification.userId;
 
     return User.findById(userId).exec().then(function(user) {
+        if(user === null) {
+            // What do we do here? This is middleware.
+        }
+
         user.notifications.push(notification);
         return user.save();
     })
     .catch(function(err) {
+        // Send this to error handling middleware.
         console.log(err);
     });
 }
@@ -119,6 +128,12 @@ module.exports.delete_vote = function(req, res) {
         var voteId = req.body._id;
 
         return Vote.findById(voteId).exec().then(function(vote) {
+            if(vote === null) {
+                res.status(404).json({
+                    message: 'Vote not found.'
+                });
+            }
+
             if(vote.userId === authUserId) {
                 return vote.remove().then(function() {
                     res.json({
@@ -134,7 +149,7 @@ module.exports.delete_vote = function(req, res) {
             }
         })
         .catch(function(err) {
-            // What about 404's?
+            // Send this to error handling middleware.
             res.status(500).json(err);
         })
     } else {
