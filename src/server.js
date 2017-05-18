@@ -27,6 +27,16 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.text());
 app.use(bodyParser.json({ type: 'application/json'}));
+// Error handling middleware
+app.use(function(err, req, res, next) {
+    if(err.logToConsole) {
+        console.log(err.message);
+        return;
+    }
+
+    res.status(err.status || 500);
+    res.json(err.message);
+});
 
 // Routes
 app.use('/auth', auth);
@@ -37,7 +47,7 @@ app.use('/posts', posts);
 app.use('/comments', comments);
 app.use('/relationships', relationships);
 
-// This one will serve the server rendering.
+// This one will serve the app.
 // All server-side rendering will happen here.
 app.get('/', function(req, res) {
     res.send('Welcome to app, homie!');

@@ -31,8 +31,7 @@ module.exports.get_notifications = function(req, res) {
             res.json(notifications);
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // If no user is authenticated
@@ -74,8 +73,7 @@ module.exports.mark_notification_as_read = function(req, res) {
             }
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // If no user is authenticated

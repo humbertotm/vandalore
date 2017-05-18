@@ -37,8 +37,7 @@ module.exports.delete_user = function(req, res) {
             });
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     }
 
@@ -85,8 +84,7 @@ module.exports.update_user_profile = function(req, res) {
             }
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // If no authenticated user
@@ -137,8 +135,7 @@ module.exports.update_user_local_email = function(req, res) {
             }
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // If no authenticated user
@@ -189,7 +186,7 @@ module.exports.update_user_password = function(req, res) {
             });
         })
         .catch(function(err) {
-            res.json(err);
+            next(err);
         })
     }
 
@@ -218,8 +215,7 @@ module.exports.get_user = function(req, res) {
         res.json(user);
     })
     .catch(function(err) {
-        // Send this to error handling middleware.
-        res.status(500).json(err);
+        next(err);
     });
 }
 
@@ -246,8 +242,7 @@ module.exports.get_user_votes = function(req, res) {
             res.json(user.votes);
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // If no authenticated user
@@ -279,8 +274,7 @@ module.exports.get_user_posts = function(req, res) {
         res.json(user.posts);
     })
     .catch(function(err) {
-        // Send this to error handling middleware.
-        res.status(500).json(err);
+        next(err);
     });
 }
 

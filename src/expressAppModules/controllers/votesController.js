@@ -32,8 +32,7 @@ module.exports.create_vote = function(req, res, next) {
             next();
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         });
     } else {
         // If no authenticated user
@@ -76,10 +75,8 @@ module.exports.push_and_save_vote = function(req, res, next) {
         docs.map(passPostToNext);
     })
     .catch(function(err) {
-        // Verify that logging this errors is
-        // not an expensive operation performance-wise.
-        // Send this to error handling middleware.
-        console.log(err);
+        err.logToConsole = true;
+        next(err);
     });
 }
 
@@ -100,8 +97,8 @@ module.exports.check_vote_count = function(req, res, next) {
             next();
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            console.log(err);
+            err.logToConsole = true;
+            next(err);
         });
     } else {
         return;
@@ -123,7 +120,8 @@ module.exports.push_and_save_notification = function(req, res) {
     })
     .catch(function(err) {
         // Send this to error handling middleware.
-        console.log(err);
+        err.logToConsole = true;
+        next(err);
     });
 }
 
@@ -161,8 +159,7 @@ module.exports.delete_vote = function(req, res) {
             }
         })
         .catch(function(err) {
-            // Send this to error handling middleware.
-            res.status(500).json(err);
+            next(err);
         })
     } else {
         // If no authenticated user
