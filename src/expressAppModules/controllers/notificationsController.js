@@ -7,14 +7,14 @@ var  mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
 // Gets notifications for a user.
-module.exports.get_notifications = function(req, res) {
+module.exports.get_notifications = function(req, res, next) {
     if(req.user) {
-        var userId = req.user._id;
+        var userId = req.user._id; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
         if(!checkForHexRegExp.test(userId)) {
-            throw new Error('userId provided is not an instance of ObjectId.');
+            throw new Error('Bad params.');
         }
 
         return User.findById(userId).populate({
@@ -42,14 +42,14 @@ module.exports.get_notifications = function(req, res) {
 }
 
 // Updates notification.read.
-module.exports.mark_notification_as_read = function(req, res) {
+module.exports.mark_notification_as_read = function(req, res, next) {
     if(req.user) {
-        var authUserId = req.user._id;
-        var notificationId = req.body.notification._id;
+        var authUserId = req.user._id; // String
+        var notificationId = req.body._id; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(notificationId))) {
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(notificationId)) {
             throw new Error('authUserId and/or notificationId provided is not an instance of ObjectId.');
         }
 
@@ -60,7 +60,7 @@ module.exports.mark_notification_as_read = function(req, res) {
                 });
             }
 
-            if(notification.userId === authUserId) {
+            if(notification.userId.toString() === authUserId) {
                 notification.read = true;
                 return notification.save().then(function(notif) {
                     res.json(notif);

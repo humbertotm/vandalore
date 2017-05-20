@@ -25,7 +25,7 @@ mongoose.Promise = require('bluebird');
 describe('Comments controller', function() {
     describe('create_comment', function() {
         var res, id1, id2, id3, err,
-                comment, next, save;
+            comment, next, save;
         var sandbox = sinon.sandbox.create();
         var reqWithUser, reqWithoutUser;
 
@@ -41,10 +41,10 @@ describe('Comments controller', function() {
                 method: 'POST',
                 url: '/comments',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 body: {
-                    postId: id2,
+                    postId: id2.toString(),
                     content: 'Some comment.'
                 }
             });
@@ -53,8 +53,8 @@ describe('Comments controller', function() {
                 method: 'POST',
                 url: '/comments',
                 body: {
-                    postId: id1,
-                    userId: id2
+                    postId: id1.toString(),
+                    userId: id2.toString()
                 }
             });
         });
@@ -97,7 +97,7 @@ describe('Comments controller', function() {
             });
         });
 
-        it('responds with err when comment.save() rejects', function(done) {
+        it('calls next(err) when comment.save() rejects', function(done) {
             err = {
                 errors: {
                     message: 'Some error message.'
@@ -107,18 +107,28 @@ describe('Comments controller', function() {
             save.returnsPromise().rejects(err);
 
             commentsController.create_comment(reqWithUser, res, next).then(function() {
-                var data = JSON.parse(res._getData());
-
                 expect(save.called).to.equal(true);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                user: {
+                    _id: 'aaaaaaaaaaaaaaa'
+                },
+                body: {
+                    postId: 'aaaaaaabbbaaaaa'
+                }
+            });
+
+            expect(commentsController.create_comment(badReq, res, next)).to.throw(Error);
         });
     });
 
     describe('push_and_save_comment middleware', function() {
-        var id1, id2, id3, comment, user, post, req, res;
+        var id1, id2, id3, comment, user, post, req, res, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -138,6 +148,7 @@ describe('Comments controller', function() {
             });
 
             res = mockHttp.createResponse();
+            next = sandbox.spy();
         });
 
         afterEach(function() {
@@ -179,7 +190,7 @@ describe('Comments controller', function() {
             savePost.returnsPromise().resolves();
             promiseAll.returnsPromise().resolves([user, post]);
 
-            commentsController.push_and_save_comment(req, res).then(function() {
+            commentsController.push_and_save_comment(req, res, next).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 userMock.verify();
                 postMock.verify();
@@ -189,8 +200,7 @@ describe('Comments controller', function() {
             });
         });
 
-        it('logs error to the console when Promise.all() rejects', function(done) {
-            var consoleLog = sandbox.spy(console, 'log');
+        it('calls next(err) when Promise.all() rejects', function(done) {
             var promiseAll = sandbox.stub(Promise, 'all');
             var saveUser = sandbox.stub(User.prototype, 'save');
             var savePost = sandbox.stub(Post.prototype, 'save');
@@ -199,24 +209,74 @@ describe('Comments controller', function() {
                 errors: {
                     message: 'Some error message.'
                 }
-            }
+            };
 
             promiseAll.returnsPromise().rejects(err);
 
-            commentsController.push_and_save_comment(req, res).then(function() {
+            commentsController.push_and_save_comment(req, res, next).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 expect(saveUser.called).to.equal(false);
                 expect(savePost.called).to.equal(false);
-                expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
+                expect(next.withArgs(err).calledOnce).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('calls next(err) when doc.save() rejects', function(done) {
+            var promiseAll = sandbox.stub(Promise, 'all');
+            var saveUser = sandbox.stub(User.prototype, 'save');
+            var savePost = sandbox.stub(Post.prototype, 'save');
+
+            var userMock = sandbox.mock(User);
+            var postMock = sandbox.mock(Post);
+
+            user = new User({
+                _id: id2,
+                comments: []
+            });
+
+            post = new Post({
+                _id: id3,
+                comments: []
+            });
+
+            userMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(user);
+
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(post);
+
+            var err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            };
+
+            promiseAll.returnsPromise().resolves([user, post]);
+            saveUser.returnsPromise().resolves();
+            savePost.returnsPromise().rejects(err);
+
+            commentsController.push_and_save_comment(req, res, next).then(function() {
+                userMock.verify();
+                postMock.verify();
+                expect(promiseAll.called).to.equal(true);
+                expect(savePost.called).to.equal(true);
+                // Not calling next. Figure out why.
+                expect(next.withArgs(err).called).to.equal(true);
+                done();
+            });
+
         });
     });
 
     describe('delete_comment', function() {
         var reqWithUser, reqWithoutUser, res,
                 id1, id2, id3, id4, id5,
-                comment, commentMock, remove;
+                comment, commentMock, remove, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -231,12 +291,12 @@ describe('Comments controller', function() {
                 method: 'DELETE',
                 url: '/comments',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 body: {
-                    _id: id3,
-                    postId: id2,
-                    userId: id1,
+                    _id: id3.toString(),
+                    postId: id2.toString(),
+                    userId: id1.toString(),
                     content: 'Some comment.'
                 }
             });
@@ -245,9 +305,9 @@ describe('Comments controller', function() {
                 method: 'DELETE',
                 url: '/comments',
                 body: {
-                    _id: id3,
-                    postId: id2,
-                    userId: id1,
+                    _id: id3.toString(),
+                    postId: id2.toString(),
+                    userId: id1.toString(),
                     content: 'Some comment.'
                 }
             });
@@ -264,6 +324,7 @@ describe('Comments controller', function() {
             commentMock = sandbox.mock(Comment);
 
             remove = sandbox.stub(Comment.prototype, 'remove');
+            next = sandbox.spy();
         });
 
         afterEach(function() {
@@ -291,7 +352,7 @@ describe('Comments controller', function() {
 
             remove.returnsPromise().resolves();
 
-            commentsController.delete_comment(reqWithUser, res).then(function() {
+            commentsController.delete_comment(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 commentMock.verify();
@@ -317,7 +378,7 @@ describe('Comments controller', function() {
                 .chain('exec')
                 .resolves(comment1);
 
-            commentsController.delete_comment(reqWithUser, res).then(function() {
+            commentsController.delete_comment(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 commentMock.verify();
@@ -328,7 +389,7 @@ describe('Comments controller', function() {
             });
         })
 
-        it('responds with err when Comment.findById() rejects', function(done) {
+        it('calls next(err) when Comment.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -340,17 +401,14 @@ describe('Comments controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            commentsController.delete_comment(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            commentsController.delete_comment(reqWithUser, res, next).then(function() {
                 commentMock.verify();
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
 
-        it('responds with err when comment.remove() rejects', function(done) {
+        it('calles next(err) when comment.remove() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -364,15 +422,25 @@ describe('Comments controller', function() {
 
             remove.returnsPromise().rejects(err);
 
-            commentsController.delete_comment(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            commentsController.delete_comment(reqWithUser, res, next).then(function() {
                 commentMock.verify();
                 expect(remove.called).to.equal(true);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
-        })
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                user: {
+                    _id: 'aaaaaaaaaaaaaaaaaaaaaaaa'
+                },
+                body: {
+                    _id: 'bbbbbbbbbbbbbbbbbbbb'
+                }
+            });
+
+            expect(commentsController.delete_comment(badReq, res, next)).to.throw(Error);
+        });
     });
 });

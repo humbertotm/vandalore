@@ -25,7 +25,7 @@ describe('Notifactions controller', function() {
     describe('get_notifications', function() {
         var reqWithUser, reqWithoutUser, res,
         id1, id2, id3, id4, id5,
-        noti1, noti2, user, userMock;
+        noti1, noti2, user, userMock, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -39,10 +39,10 @@ describe('Notifactions controller', function() {
                 method: 'GET',
                 url: '/notifications',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 params: {
-                    userId: id1
+                    userId: id1.toString()
                 }
             });
 
@@ -50,7 +50,7 @@ describe('Notifactions controller', function() {
                 method: 'GET',
                 url: '/notifications',
                 params: {
-                    userId: id1
+                    userId: id1.toString()
                 }
             });
 
@@ -78,6 +78,8 @@ describe('Notifactions controller', function() {
             });
 
             userMock = sandbox.mock(User);
+
+            next = sandbox.spy();
         });
 
         afterEach(function() {
@@ -91,7 +93,7 @@ describe('Notifactions controller', function() {
         });
 
         it('responds with 401 status if no authenticated user', function() {
-            notiController.get_notifications(reqWithoutUser, res);
+            notiController.get_notifications(reqWithoutUser, res, next);
 
             var data = JSON.parse(res._getData());
 
@@ -106,7 +108,7 @@ describe('Notifactions controller', function() {
                 .chain('exec')
                 .resolves(user);
 
-            notiController.get_notifications(reqWithUser, res).then(function() {
+            notiController.get_notifications(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 userMock.verify();
@@ -116,7 +118,7 @@ describe('Notifactions controller', function() {
             });
         });
 
-        it('responds with err if User.findById() rejects', function(done) {
+        it('calls next(err) if User.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -129,21 +131,28 @@ describe('Notifactions controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            notiController.get_notifications(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            notiController.get_notifications(reqWithUser, res, next).then(function() {
                 userMock.verify();
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws if bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                user: {
+                    _id: 'aaaa'
+                }
+            });
+
+            expect(notiController.get_notifications(badReq, res, next)).to.throw(Error);
         });
     });
 
     describe('mark_notification_as_read', function() {
         var reqWithUser, reqWithoutUser, res,
                 id1, id2, id3, id4, noti,
-                notiMock, save;
+                notiMock, save, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -164,16 +173,14 @@ describe('Notifactions controller', function() {
                 method: 'PUT',
                 url: '/notifications',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 body: {
-                    notification: {
-                        _id: id2,
-                        userId: id1,
-                        postId: id3,
-                        read: false,
-                        message: 'Some message.'
-                    }
+                    _id: id2.toString(),
+                    userId: id1.toString(),
+                    postId: id3.toString(),
+                    read: false,
+                    message: 'Some message.'
                 }
             });
 
@@ -181,13 +188,11 @@ describe('Notifactions controller', function() {
                 method: 'PUT',
                 url: '/notifications',
                 body: {
-                    notification: {
-                        _id: id2,
-                        userId: id1,
-                        postId: id3,
-                        read: false,
-                        message: 'Some message.'
-                    }
+                    _id: id2.toString(),
+                    userId: id1.toString(),
+                    postId: id3.toString(),
+                    read: false,
+                    message: 'Some message.'
                 }
             });
 
@@ -196,6 +201,8 @@ describe('Notifactions controller', function() {
             notiMock = sandbox.mock(Notification);
 
             save = sandbox.stub(Notification.prototype, 'save');
+
+            next = sandbox.spy();
         });
 
         afterEach(function() {
@@ -207,7 +214,7 @@ describe('Notifactions controller', function() {
         });
 
         it('responds with 401 status if no user is authenticated', function() {
-            notiController.mark_notification_as_read(reqWithoutUser, res);
+            notiController.mark_notification_as_read(reqWithoutUser, res, next);
 
             var data = JSON.parse(res._getData());
 
@@ -223,7 +230,7 @@ describe('Notifactions controller', function() {
 
             save.returnsPromise().resolves(noti);
 
-            notiController.mark_notification_as_read(reqWithUser, res).then(function() {
+            notiController.mark_notification_as_read(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 notiMock.verify();
@@ -239,16 +246,14 @@ describe('Notifactions controller', function() {
                 method: 'PUT',
                 url: '/notifications',
                 user: {
-                    _id: id4
+                    _id: id4.toString()
                 },
                 body: {
-                    notification: {
-                        _id: id2,
-                        userId: id1,
-                        postId: id3,
-                        read: false,
-                        message: 'Some message.'
-                    }
+                    _id: id2,
+                    userId: id1,
+                    postId: id3,
+                    read: false,
+                    message: 'Some message.'
                 }
             });
 
@@ -257,7 +262,7 @@ describe('Notifactions controller', function() {
                 .chain('exec')
                 .resolves(noti)
 
-            notiController.mark_notification_as_read(reqWithUser1, res).then(function() {
+            notiController.mark_notification_as_read(reqWithUser1, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 notiMock.verify();
@@ -268,7 +273,7 @@ describe('Notifactions controller', function() {
             });
         });
 
-        it('responds with err if Notification.findById() rejects', function(done) {
+        it('calls next(err) if Notification.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -280,18 +285,15 @@ describe('Notifactions controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            notiController.mark_notification_as_read(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            notiController.mark_notification_as_read(reqWithUser, res, next).then(function() {
                 notiMock.verify();
                 expect(save.called).to.equal(false);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
 
-        it('responds with err if noti.save() rejects', function(done) {
+        it('calls next(err) if noti.save() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -305,15 +307,25 @@ describe('Notifactions controller', function() {
 
             save.returnsPromise().rejects(err);
 
-            notiController.mark_notification_as_read(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            notiController.mark_notification_as_read(reqWithUser, res, next).then(function() {
                 notiMock.verify();
                 expect(save.called).to.equal(true);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws if bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                user: {
+                    _id: 'aaaa'
+                },
+                body: {
+                    _id: 'bbbb'
+                }
+            });
+
+            expect(notiController.get_notifications(badReq, res, next)).to.throw(Error);
         });
     });
 });

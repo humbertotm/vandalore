@@ -38,10 +38,10 @@ describe('Relationships controller', function() {
                 method: 'POST',
                 url: '/relationships',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 body: {
-                    followedId: id2
+                    followedId: id2.toString()
                 }
             });
 
@@ -49,7 +49,7 @@ describe('Relationships controller', function() {
                 method: 'POST',
                 url: '/relationships',
                 body: {
-                    followedId: id2
+                    followedId: id2.toString()
                 }
             });
 
@@ -95,7 +95,7 @@ describe('Relationships controller', function() {
             });
         });
 
-        it('responds with 500 status and error message when rel.save() rejects', function(done) {
+        it('calls next(err) when rel.save() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -105,18 +105,27 @@ describe('Relationships controller', function() {
             save.returnsPromise().rejects(err);
 
             relController.create_relationship(reqWithUser, res, next).then(function() {
-                var data = JSON.parse(res._getData());
-
                 expect(save.called).to.equal(true);
-                expect(next.called).to.equal(false);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                user: {
+                    _id: 'aaaa'
+                },
+                body: {
+                    followedId: 'bbbb'
+                }
+            });
+
+            expect(relController.create_relationship(badReq, res, next)).to.throw(Error);
+        });
     });
 
-    describe('push_and_save_rel middleware', function() {
+    describe.skip('push_and_save_rel middleware', function() {
         var id1, id2, id3, rel, save, follower, followed,
             consoleLog, promiseAll, userMock;
         var sandbox = sinon.sandbox.create();
@@ -129,6 +138,7 @@ describe('Relationships controller', function() {
             save = sandbox.spy(User.prototype, 'save');
             consoleLog = sandbox.stub(console, 'log');
             promiseAll = sandbox.stub(Promise, 'all');
+            next = sandbox.spy();
 
             follower = new User({
                 _id: id1,
@@ -156,7 +166,7 @@ describe('Relationships controller', function() {
             rel = {};
         });
 
-        it.skip('makes the appropriate calls when everything goes right', function(done) {
+        it('makes the appropriate calls when everything goes right', function(done) {
             // Not working.
             // Not sure expectations are correctly defined.
             userMock
@@ -174,12 +184,16 @@ describe('Relationships controller', function() {
                 done();
             });
         });
+
+        it('calls next(err) when Promise.all() rejects', function(done) {
+
+        });
     });
 
     describe('delete_relationship', function() {
         var reqWithUser, reqWithoutUser, res,
             id1, id2, id3, id4, id5, rel,
-            relMock, remove;
+            relMock, remove, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -193,12 +207,12 @@ describe('Relationships controller', function() {
                 method: 'DELETE',
                 url: '/relationships',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 body: {
-                    _id: id4,
-                    followerId: id1,
-                    followedId: id2
+                    _id: id4.toString(),
+                    followerId: id1.toString(),
+                    followedId: id2.toString()
                 }
             });
 
@@ -206,7 +220,7 @@ describe('Relationships controller', function() {
                 method: 'DELETE',
                 url: '/relationships',
                 body: {
-                    _id: id2
+                    _id: id2.toString()
                 }
             });
 
@@ -220,6 +234,7 @@ describe('Relationships controller', function() {
 
             relMock = sandbox.mock(Relationship);
             remove = sandbox.stub(Relationship.prototype, 'remove');
+            next = sandbox.spy();
         });
 
         afterEach(function() {
@@ -231,7 +246,7 @@ describe('Relationships controller', function() {
         });
 
         it('returns 401 if no user is authenticated', function() {
-            relController.delete_relationship(reqWithoutUser, res);
+            relController.delete_relationship(reqWithoutUser, res, next);
 
             var data = JSON.parse(res._getData());
 
@@ -248,7 +263,7 @@ describe('Relationships controller', function() {
 
             remove.returnsPromise().resolves();
 
-            relController.delete_relationship(reqWithUser, res).then(function() {
+            relController.delete_relationship(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 relMock.verify();
@@ -272,7 +287,7 @@ describe('Relationships controller', function() {
                 .chain('exec')
                 .resolves(rel1);
 
-            relController.delete_relationship(reqWithUser, res).then(function() {
+            relController.delete_relationship(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 relMock.verify();
@@ -283,7 +298,7 @@ describe('Relationships controller', function() {
             });
         });
 
-        it('responds with err when Relationship.findById() rejects', function(done) {
+        it('calls next(err) when Relationship.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -295,17 +310,14 @@ describe('Relationships controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            relController.delete_relationship(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            relController.delete_relationship(reqWithUser, res, next).then(function() {
                 relMock.verify();
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
 
-        it('responds with err when rel.remove() rejects', function(done) {
+        it('calls next(err) when rel.remove() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -319,15 +331,25 @@ describe('Relationships controller', function() {
 
             remove.returnsPromise().rejects(err);
 
-            relController.delete_relationship(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            relController.delete_relationship(reqWithUser, res, next).then(function() {
                 relMock.verify();
                 expect(remove.called).to.equal(true);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                user: {
+                    _id: 'aaaa'
+                },
+                body: {
+                    followedId: 'bbbb'
+                }
+            });
+
+            expect(relController.delete_relationship(badReq, res, next)).to.throw(Error);
         });
     });
 });

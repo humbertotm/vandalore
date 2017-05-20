@@ -19,9 +19,6 @@ require('sinon-mongoose');
 var sinonStubPromise = require('sinon-stub-promise');
 sinonStubPromise(sinon);
 
-// Requiring the app (needed to test with chaiHttp)
-// var server = require('../../../src/server');
-
 // Require mongoose.
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
@@ -29,21 +26,24 @@ mongoose.Promise = require('bluebird');
 describe('Votes controller', function() {
     describe('create_vote', function() {
         var reqWithUser, reqWithoutUser, res, vote,
-                id1, id2, id3, err, next, save;
+            id1, id2, id3, err, next, save;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
+            id1 = mongoose.Types.ObjectId();
+            id2 = mongoose.Types.ObjectId();
+            id3 = mongoose.Types.ObjectId();
             res = mockHttp.createResponse();
 
             reqWithUser = mockHttp.createRequest({
                 method: 'POST',
                 url: '/votes',
                 user: {
-                    _id: id1
+                    _id: 'bbbbbbbbbbbbbbbbbbbbbbbb'
                 },
                 body: {
-                    postId: id2,
-                    userId: id1
+                    postId: 'aaaaaaaaaaaaaaaaaaaaaaaa',
+                    userId: 'bbbbbbbbbbbbbbbbbbbbbbbb'
                 }
             });
 
@@ -51,18 +51,14 @@ describe('Votes controller', function() {
                 method: 'POST',
                 url: '/votes',
                 body: {
-                    postId: id1,
-                    userId: id2
+                    postId: 'cd12sdjjacb1245456543423',
+                    userId: 'abcdacbdacbdacbdabcdabcd'
                 }
             });
 
             next = sandbox.spy();
 
             save = sandbox.stub(Vote.prototype, 'save');
-
-            id1 = mongoose.Types.ObjectId();
-            id2 = mongoose.Types.ObjectId();
-            id3 = mongoose.Types.ObjectId();
         });
 
         afterEach(function() {
@@ -102,7 +98,7 @@ describe('Votes controller', function() {
             });
         });
 
-        it('Responds with error when saving vote fails', function(done) {
+        it('calls next(err) when saving vote fails', function(done) {
             err = {
                 errors: {
                     message: 'Something went wrong when saving the vote to the database.'
@@ -112,13 +108,25 @@ describe('Votes controller', function() {
             save.returnsPromise().rejects(err);
 
             votesController.create_vote(reqWithUser, res, next).then(function() {
-                var data = JSON.parse(res._getData());
-
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
-                expect(next.called).to.equal(false);
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                method: 'POST',
+                url: '/votes',
+                user: {
+                    _id: 'bbbbbbbbbbbbbbbbbbbbbbbb'
+                },
+                body: {
+                    postId: 'aaaaaaaaaaaaa',
+                    userId: 'bbbbbbbbbbbbbbbbbbbbbbbb'
+                }
+            });
+
+            expect(votesController.create_vote(badReq, res, next).to.throw(Error));
         });
     });
 
@@ -197,8 +205,7 @@ describe('Votes controller', function() {
             });
         });
 
-        it('logs error to the console when Promise.all rejects', function(done) {
-            var consoleLog = sandbox.stub(console, 'log');
+        it('calls next(err) when Promise.all rejects', function(done) {
             var promiseAll = sandbox.stub(Promise, 'all');
 
             var err = {
@@ -212,8 +219,7 @@ describe('Votes controller', function() {
             // Call middleware function.
             votesController.push_and_save_vote(req, res, next).then(function() {
                 expect(promiseAll.called).to.equal(true);
-                expect(next.called).to.equal(false);
-                expect(consoleLog.called).to.equal(true);
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
@@ -293,9 +299,7 @@ describe('Votes controller', function() {
             expect(next.called).to.equal(false);
         });
 
-        it('logs error to the console', function(done) {
-            var consoleLog = sandbox.stub(console, 'log');
-
+        it('calls next(err) when save() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -307,7 +311,7 @@ describe('Votes controller', function() {
             // Call middleware function.
             votesController.check_vote_count(reqWithHotPost, res, next).then(function() {
                 expect(save.called).to.equal(true);
-                expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
@@ -316,7 +320,7 @@ describe('Votes controller', function() {
     describe('push_and_save_notification middleware', function() {
         var sandbox = sinon.sandbox.create();
         var id1, id2, notification, user,
-            req, res, save, consoleLog, userMock;
+            req, res, save, next, userMock;
 
         beforeEach(function() {
             id1 = mongoose.Types.ObjectId();
@@ -334,7 +338,7 @@ describe('Votes controller', function() {
             res = mockHttp.createResponse();
 
             save = sandbox.stub(User.prototype, 'save');
-            consoleLog = sandbox.stub(console, 'log');
+            next = sandbox.spy();
             userMock = sandbox.mock(User);
         });
 
@@ -360,14 +364,14 @@ describe('Votes controller', function() {
             save.returnsPromise().resolves();
 
             // Call middleware function.
-            votesController.push_and_save_notification(req, res).then(function() {
+            votesController.push_and_save_notification(req, res, next).then(function() {
                 userMock.verify();
                 expect(save.called).to.equal(true);
                 done();
             });
         });
 
-        it('logs error to the console if User.findById rejects', function(done) {
+        it('calls next(err) when User.findById rejects', function(done) {
             user = new User({
                 _id: id1,
                 notifications: []
@@ -384,15 +388,15 @@ describe('Votes controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            votesController.push_and_save_notification(req, res).then(function() {
+            votesController.push_and_save_notification(req, res, next).then(function() {
                 userMock.verify();
                 expect(save.called).to.equal(false);
-                expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
+                expect(next.withArgs(err).calledOnce).to.equal(true);
                 done();
             });
         });
 
-        it('logs error to the console when user.save rejects', function(done) {
+        it('calls next(err) when user.save rejects', function(done) {
             user = new User({
                 _id: id1,
                 notifications: []
@@ -411,9 +415,9 @@ describe('Votes controller', function() {
 
             save.returnsPromise().rejects(err);
 
-            votesController.push_and_save_notification(req, res).then(function() {
+            votesController.push_and_save_notification(req, res, next).then(function() {
                 userMock.verify();
-                expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
+                expect(next.withArgs(err).calledOnce).to.equal(true);
                 done();
             });
         });
@@ -421,7 +425,7 @@ describe('Votes controller', function() {
 
     describe('delete_vote', function() {
         var reqWithUser, reqWithoutUser, res, id1, id2, id3, id4, id5,
-                vote, remove, voteMock;
+            next, vote, remove, voteMock;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -443,12 +447,12 @@ describe('Votes controller', function() {
                 method: 'DELETE',
                 url: '/votes',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 body: {
-                    _id: id3,
-                    postId: id2,
-                    userId: id1
+                    _id: id3.toString(),
+                    postId: id2.toString(),
+                    userId: id1.toString()
                 }
             });
 
@@ -456,13 +460,15 @@ describe('Votes controller', function() {
                 method: 'DELETE',
                 url: '/votes',
                 body: {
-                    _id: id3,
-                    postId: id2,
-                    userId: id1
+                    _id: 'cccccccccccccccccccccccc',
+                    postId: 'bbbbbbbbbbbbbbbbbbbbbbbb',
+                    userId: 'aaaaaaaaaaaaaaaaaaaaaaaa'
                 }
             });
 
             voteMock = sandbox.mock(Vote);
+
+            next = sandbox.spy();
 
             res = mockHttp.createResponse();
         });
@@ -493,7 +499,7 @@ describe('Votes controller', function() {
 
             remove.returnsPromise().resolves();
 
-            votesController.delete_vote(reqWithUser, res).then(function() {
+            votesController.delete_vote(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 voteMock.verify();
@@ -510,7 +516,7 @@ describe('Votes controller', function() {
             var vote1 = new Vote({
                 _id: id4,
                 postId: id2,
-                userId: id5
+                userId: id5.toString()
             });
 
             voteMock
@@ -518,7 +524,7 @@ describe('Votes controller', function() {
                 .chain('exec')
                 .resolves(vote1);
 
-            votesController.delete_vote(reqWithUser, res).then(function() {
+            votesController.delete_vote(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 voteMock.verify();
@@ -529,7 +535,7 @@ describe('Votes controller', function() {
             });
         });
 
-        it('responds with err when Vote.findById rejects', function(done) {
+        it('calls next(err) when Vote.findById rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -541,12 +547,9 @@ describe('Votes controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            votesController.delete_vote(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            votesController.delete_vote(reqWithUser, res, next).then(function() {
                 voteMock.verify();
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
@@ -565,15 +568,26 @@ describe('Votes controller', function() {
 
             remove.returnsPromise().rejects(err);
 
-            votesController.delete_vote(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
+            votesController.delete_vote(reqWithUser, res, next).then(function() {
 
                 voteMock.verify();
                 expect(remove.called).to.equal(true);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                user: {
+                    _id: 'aaaaa'
+                },
+                body: {
+                    postId: 'bbb'
+                }
+            });
+
+            expect(votesController.delete_vote(badReq, res, next)).to.throw(Error);
         });
     });
 });

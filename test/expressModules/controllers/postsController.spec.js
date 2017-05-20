@@ -47,13 +47,15 @@ describe('Posts controller', function() {
                 method: 'POST',
                 url: '/posts',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 body: {
                     title: 'Some title',
                     description: 'Some description',
-                    image: 'some-image-url',
-                    category: 1
+                    category: '1'
+                },
+                file: {
+                    location: 'some-url'
                 }
             });
 
@@ -63,8 +65,11 @@ describe('Posts controller', function() {
                 body: {
                     title: 'Some title',
                     description: 'Some description',
-                    image: 'some-image-url',
-                    category: 1
+                    imageUrl: 'some-image-url',
+                    category: '1'
+                },
+                file: {
+                    location: 'some-url'
                 }
             });
 
@@ -104,7 +109,7 @@ describe('Posts controller', function() {
             });
         });
 
-        it('responds with error when post.save() rejects', function(done) {
+        it('calls next(err) when post.save() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -114,21 +119,27 @@ describe('Posts controller', function() {
             save.returnsPromise().rejects(err);
 
             postsController.create_post(reqWithUser, res, next).then(function() {
-                var data = JSON.parse(res._getData());
-
                 expect(save.called).to.equal(true);
-                expect(next.called).to.equal(false);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                user: {
+                    _id: 'aaaa'
+                }
+            });
+
+            expect(postsController.create_post(badReq, res, next)).to.throw(Error);
         });
     });
 
     describe('push_and_save_post middleware', function() {
         var id1, id2, id3, userMock, categoryMock,
                 consoleLog, promiseAll, post, user, category,
-                userSave, categorySave, req, res;
+                userSave, categorySave, req, res, next;
 
         var sandbox = sinon.sandbox.create();
 
@@ -168,6 +179,7 @@ describe('Posts controller', function() {
             promiseAll = sandbox.stub(Promise, 'all');
             userSave = sandbox.stub(User.prototype, 'save');
             categorySave = sandbox.stub(Category.prototype, 'save');
+            next = sandbox.spy();
         });
 
         afterEach(function() {
@@ -192,7 +204,7 @@ describe('Posts controller', function() {
             categorySave.returnsPromise().resolves();
             promiseAll.returnsPromise().resolves([user, category]);
 
-            postsController.push_and_save_post(req, res).then(function() {
+            postsController.push_and_save_post(req, res, next).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 userMock.verify();
                 categoryMock.verify();
@@ -202,7 +214,7 @@ describe('Posts controller', function() {
             });
         });
 
-        it('logs error to the console when Promise.all() rejects', function(done) {
+        it('calls next(err) when Promise.all() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -211,11 +223,11 @@ describe('Posts controller', function() {
 
             promiseAll.returnsPromise().rejects(err);
 
-            postsController.push_and_save_post(req, res).then(function() {
+            postsController.push_and_save_post(req, res, next).then(function() {
                 expect(promiseAll.called).to.equal(true);
                 expect(userSave.called).to.equal(false);
                 expect(categorySave.called).to.equal(false);
-                expect(consoleLog.withArgs(err).calledOnce).to.equal(true);
+                expect(next.withArgs(err).calledOnce).to.equal(true);
                 done();
             });
         });
@@ -224,7 +236,7 @@ describe('Posts controller', function() {
     describe('delete_post', function() {
         var reqWithUser, reqWithoutUser, res,
                 mockPost, remove, user, post,
-                id1, id2, id3, id4;
+                id1, id2, id3, id4, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -246,15 +258,15 @@ describe('Posts controller', function() {
                 method: 'DELETE',
                 url: '/posts',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 body: {
-                    _id: id2,
-                    userId: id1,
+                    _id: id2.toString(),
+                    userId: id1.toString(),
                     title: 'Some title',
                     description: 'Some description',
                     image: 'some-image-url',
-                    category: 1
+                    category: '1'
                 }
             });
 
@@ -262,11 +274,11 @@ describe('Posts controller', function() {
                 method: 'DELETE',
                 url: '/posts',
                 body: {
-                    _id: id2,
+                    _id: id2.toString(),
                     title: 'Some title',
                     description: 'Some description',
                     image: 'some-image-url',
-                    category: 1
+                    category: '1'
                 }
             });
 
@@ -274,6 +286,7 @@ describe('Posts controller', function() {
 
             mockPost = sandbox.mock(Post);
             remove = sandbox.stub(Post.prototype, 'remove');
+            next = sandbox.spy();
         });
 
         afterEach(function() {
@@ -285,7 +298,7 @@ describe('Posts controller', function() {
         });
 
         it('responds with 401 status if no user is authenticated', function() {
-            postsController.delete_post(reqWithoutUser, res);
+            postsController.delete_post(reqWithoutUser, res, next);
 
             var data = JSON.parse(res._getData());
 
@@ -302,7 +315,7 @@ describe('Posts controller', function() {
 
             remove.returnsPromise().resolves();
 
-            postsController.delete_post(reqWithUser, res).then(function() {
+            postsController.delete_post(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 mockPost.verify();
@@ -319,16 +332,10 @@ describe('Posts controller', function() {
                 method: 'DELETE',
                 url: '/posts',
                 user: {
-                    _id: id1
+                    _id: id1.toString()
                 },
                 body: {
-                    post: {
-                        _id: id3,
-                        title: 'Some title',
-                        description: 'Some description',
-                        image: 'some-image-url',
-                        category: 1
-                    }
+                    _id: id3.toString()
                 }
             });
 
@@ -346,7 +353,7 @@ describe('Posts controller', function() {
                 .chain('exec')
                 .resolves(post1);
 
-            postsController.delete_post(reqWithUser1, res).then(function() {
+            postsController.delete_post(reqWithUser1, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 mockPost.verify();
@@ -357,7 +364,7 @@ describe('Posts controller', function() {
             });
         });
 
-        it('responds with err when Post.findById() rejects', function(done) {
+        it('calls next(err) when Post.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -369,18 +376,15 @@ describe('Posts controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            postsController.delete_post(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            postsController.delete_post(reqWithUser, res, next).then(function() {
                 mockPost.verify();
                 expect(remove.called).to.equal(false);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
 
-        it('responds with err when post.remove() rejects', function(done) {
+        it('calls next(err) when post.remove() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -394,33 +398,41 @@ describe('Posts controller', function() {
 
             remove.returnsPromise().rejects(err);
 
-            postsController.delete_post(reqWithUser, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            postsController.delete_post(reqWithUser, res, next).then(function() {
                 mockPost.verify();
                 expect(remove.called).to.equal(true);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                user: {
+                    _id: 'aaaa'
+                },
+                body: {
+                    _id: 'bbbb'
+                }
+            });
+
+            expect(postsController.delete_post(badReq, res, next)).to.throw(Error);
         });
     });
 
     describe('get_post', function() {
         var req, res, postMock, id1, id2, id3,
-                comm1, comm2, post;
+                comm1, comm2, post, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
-            id1 = mongoose.Types.ObjectId;
-            id2 = mongoose.Types.ObjectId;
-            id3 = mongoose.Types.ObjectId;
+            id1 = mongoose.Types.ObjectId();
+            id2 = mongoose.Types.ObjectId();
+            id3 = mongoose.Types.ObjectId();
 
             req = mockHttp.createRequest({
-                method: 'GET',
-                url: '/posts/:postId',
                 params: {
-                    postId: id1
+                    postId: id1.toString()
                 }
             });
 
@@ -435,6 +447,7 @@ describe('Posts controller', function() {
             res = mockHttp.createResponse();
 
             postMock = sandbox.mock(Post);
+            next = sandbox.spy();
         });
 
         afterEach(function() {
@@ -452,7 +465,7 @@ describe('Posts controller', function() {
                 .chain('exec')
                 .resolves(post);
 
-            postsController.get_post(req, res).then(function() {
+            postsController.get_post(req, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 postMock.verify();
@@ -462,7 +475,7 @@ describe('Posts controller', function() {
             });
         });
 
-        it('responds with err when Post.findById() rejects', function(done) {
+        it('calls next(err) when Post.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -475,19 +488,26 @@ describe('Posts controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            postsController.get_post(req, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            postsController.get_post(req, res, next).then(function() {
                 postMock.verify();
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                params: {
+                    postId: 'aaaa'
+                }
+            });
+
+            expect(postsController.get_post(badReq, res, next)).to.throw(Error);
         });
     });
 
     describe('get_post_comments', function() {
-        var req, res, id1, id2, id3, post, comm1, comm2, postMock;
+        var req, res, id1, id2, id3, post, comm1, comm2, postMock, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -499,13 +519,15 @@ describe('Posts controller', function() {
                 method: 'GET',
                 url: '/posts/:postId/comments',
                 params: {
-                    postId: id1
+                    postId: id1.toString()
                 }
             });
 
             res = mockHttp.createResponse();
 
             postMock = sandbox.mock(Post);
+
+            next = sandbox.spy();
 
             comm1 = new Comment();
             comm2 = new Comment();
@@ -531,7 +553,7 @@ describe('Posts controller', function() {
                 .chain('exec')
                 .resolves(post);
 
-            postsController.get_post_comments(req, res).then(function() {
+            postsController.get_post_comments(req, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 postMock.verify();
@@ -541,7 +563,7 @@ describe('Posts controller', function() {
             });
         });
 
-        it('responds with err when Post.findById() rejects', function(done) {
+        it('calls next(err) when Post.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -554,14 +576,21 @@ describe('Posts controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            postsController.get_post_comments(req, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            postsController.get_post_comments(req, res, next).then(function() {
                 postMock.verify();
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            var badReq = mockHttp.createRequest({
+                params: {
+                    postId: 'aaaa'
+                }
+            });
+
+            expect(postsController.get_post(badReq, res, next)).to.throw(Error);
         });
     });
 });
