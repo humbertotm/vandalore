@@ -9,17 +9,18 @@ mongoose.Promise = require('bluebird');
 // Creates and responds with new relationship.
 module.exports.create_relationship = function(req, res, next) {
     if(req.user) {
-        var authUserId = req.user._id;
+        var authUserId = req.user._id; // String
+        var followedId = req.body.followedId; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!checkForHexRegExp.test(authUserId)) {
-            throw new Error('authUserId provided is not an instance of ObjectId.');
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(followedId)) {
+            throw new Error('Bad parameters.');
         }
 
         var relationship = new Relationship();
         relationship.followerId = authUserId;
-        relationship.followedId = req.body.followedId;
+        relationship.followedId = followedId;
 
         return relationship.save().then(function(createdRel) {
             res.json(createdRel);
@@ -39,10 +40,10 @@ module.exports.create_relationship = function(req, res, next) {
 
 // Pushes and saves newly created relationship into
 // follower.following and followed.followers.
-module.exports.push_and_save_rel = function(req, res) {
+module.exports.push_and_save_rel = function(req, res, next) {
     var rel = req.relationship;
-    var followerId = rel.followerId;
-    var followedId = rel.followedId;
+    var followerId = rel.followerId; // ObjectId
+    var followedId = rel.followedId; // ObjectId
 
     var promises = [
         // What if any of these returns null? Will the Promise reject?
@@ -72,15 +73,15 @@ module.exports.push_and_save_rel = function(req, res) {
 }
 
 // Deletes an existing relationship.
-module.exports.delete_relationship = function(req, res) {
+module.exports.delete_relationship = function(req, res, next) {
     if(req.user) {
-        var authUserId = req.user._id;
-        var relationshipId = req.body._id;
+        var authUserId = req.user._id; // String
+        var relationshipId = req.body._id; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(relationshipId)) {
-            thro(w new Error('authUserId and/or relationshipId provided is not an instance of ObjectId && checkForHexRegExp.test(relationshipId.');
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(relationshipId)) {
+            throw new Error('Bad parameters.');
         }
 
         return Relationship.findById(relationshipId).exec().then(function(rel) {
@@ -90,7 +91,7 @@ module.exports.delete_relationship = function(req, res) {
                 });
             }
 
-            if(rel.followerId === authUserId) {
+            if(rel.followerId.toString() === authUserId) {
                 return rel.remove().then(function() {
                     res.status(200).json({
                         message: 'Relationship successfully deleted.',

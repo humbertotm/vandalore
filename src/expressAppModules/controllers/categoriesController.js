@@ -4,7 +4,7 @@ var Category = require('../models/categoryModel');
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-module.exports.get_posts = function(req, res) {
+module.exports.get_posts = function(req, res, next) {
     var categoryId = req.params.categoryId;
 
     if(isNaN(categoryId)) {
@@ -24,22 +24,19 @@ module.exports.get_posts = function(req, res) {
         res.json(category.posts);
     })
     .catch(function(err) {
-        next(err);
+        return next(err);
     });
 }
 
-module.exports.get_more_posts = function(req, res) {
+module.exports.get_more_posts = function(req, res, next) {
     var categoryId = req.params.categoryId;
     var maxId = req.params.maxId;
 
     var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-    if(!checkForHexRegExp.test(maxId)) {
-        throw new Error('maxId provided is not an instance of ObjectId.');
-    }
-
-    if(isNaN(categoryId)) {
-        throw new Error('categoryId provided is not a Number.');
+    // Make sure this is correctly formulated.
+    if(!checkForHexRegExp.test(maxId) || isNaN(categoryId)) {
+        throw new Error('Bad parameters.');
     }
 
     return Category.findById(categoryId).exec().then(function(cat) {
@@ -49,6 +46,8 @@ module.exports.get_more_posts = function(req, res) {
             });
         }
 
+        // Keep an eye here.
+        // Not sure if maxId as a String will work here.
         var toSkip = cat.posts.indexOf(maxId);
         return cat.populate({
             path: 'posts',

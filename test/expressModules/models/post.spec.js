@@ -60,7 +60,7 @@ describe('Post model', function() {
         p.description = 'Some description.';
 
         p.validate(function(err) {
-            expect(err.errors.image).to.exist;
+            expect(err.errors.imageUrl).to.exist;
             done();
         });
     });
@@ -81,7 +81,7 @@ describe('Post model', function() {
         p.userId = id;
         p.title = 'Some title.';
         p.description = 'Some description.';
-        p.image = '09fa8e6734a7ce';
+        p.imageUrl = 'some-url';
         p.category = 1;
 
         p.validate(function(err) {
@@ -93,7 +93,7 @@ describe('Post model', function() {
     it('should be valid, too', function(done) {
         p.userId = id;
         p.title = 'Some title.';
-        p.image = '09fa8e6734a7ce';
+        p.imageUrl = 'some-url';
         p.category = 1;
 
         p.validate(function(err) {

@@ -28,6 +28,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.text());
 app.use(bodyParser.json({ type: 'application/json'}));
 // Error handling middleware
+// Move it to a separate file and test it.
 app.use(function(err, req, res, next) {
     if(err.logToConsole) {
         console.log(err.message);

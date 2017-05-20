@@ -13,13 +13,13 @@ var votesForHot = require('../utils').votesForHot;
 // Creates a new vote and sends it in response.
 module.exports.create_vote = function(req, res, next) {
     if(req.user) {
-        var userId = req.user._id;
-        var postId = req.body.postId;
+        var userId = req.user._id; // String
+        var postId = req.body.postId; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!(checkForHexRegExp.test(userId) && checkForHexRegExp.test(postId))) {
-            throw new Error('userId and/or postId provided is not an instance of ObjectId.');
+        if(!checkForHexRegExp.test(userId) || !checkForHexRegExp.test(postId)) {
+            throw new Error('Bad parameters.');
         }
 
         var vote = new Vote();
@@ -45,8 +45,8 @@ module.exports.create_vote = function(req, res, next) {
 // Pushes newly created vote into refs in user and post docs.
 module.exports.push_and_save_vote = function(req, res, next) {
     var vote = req.vote;
-    var userId = vote.userId;
-    var postId = vote.postId;
+    var userId = vote.userId; // ObjectId
+    var postId = vote.postId; // ObjectId
 
     var promises = [
         // What if any of these return null? Will the Promise reject?
@@ -106,9 +106,9 @@ module.exports.check_vote_count = function(req, res, next) {
 }
 
 // Pushes and saves newly created notification to corresponding user.
-module.exports.push_and_save_notification = function(req, res) {
+module.exports.push_and_save_notification = function(req, res, next) {
     var notification = req.notification;
-    var userId = notification.userId;
+    var userId = notification.userId; // ObjectId
 
     return User.findById(userId).exec().then(function(user) {
         if(user === null) {
@@ -119,22 +119,21 @@ module.exports.push_and_save_notification = function(req, res) {
         return user.save();
     })
     .catch(function(err) {
-        // Send this to error handling middleware.
         err.logToConsole = true;
         next(err);
     });
 }
 
 // Deletes a vote.
-module.exports.delete_vote = function(req, res) {
+module.exports.delete_vote = function(req, res, next) {
     if(req.user) {
-        var authUserId = req.user._id;
-        var voteId = req.body._id;
+        var authUserId = req.user._id; // String
+        var voteId = req.body._id; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(voteId))) {
-            throw new Error('authUserId and/or voteId provided is not an instance of ObjectId.');
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(voteId)) {
+            throw new Error('Bad parameters.');
         }
 
         return Vote.findById(voteId).exec().then(function(vote) {
@@ -144,7 +143,7 @@ module.exports.delete_vote = function(req, res) {
                 });
             }
 
-            if(vote.userId === authUserId) {
+            if(vote.userId.toString() === authUserId) {
                 return vote.remove().then(function() {
                     res.json({
                         message: "Vote successfully deleted.",

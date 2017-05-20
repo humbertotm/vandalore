@@ -10,12 +10,12 @@ mongoose.Promise = require('bluebird');
 // Creates and responds with a new post.
 module.exports.create_post = function(req, res, next) {
     if(req.user) {
-        var userId = req.user._id;
+        var userId = req.user._id; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
         if(!checkForHexRegExp.test(userId)) {
-            throw new Error('userId provided is not an instance of ObjectId.');
+            throw new Error('Bad parameters.');
         }
 
         var post = new Post();
@@ -42,10 +42,10 @@ module.exports.create_post = function(req, res, next) {
 }
 
 // Pushes and saves new post in corresponding user and category ref.
-module.exports.push_and_save_post = function(req, res) {
+module.exports.push_and_save_post = function(req, res, next) {
     var post = req.post;
-    var userId = post.userId;
-    var categoryId = post.category;
+    var userId = post.userId; // ObjectId
+    var categoryId = post.category; // Number
 
     var promises = [
         // What if any of these return null? Will the Promise reject?
@@ -71,15 +71,15 @@ module.exports.push_and_save_post = function(req, res) {
 }
 
 // Deletes a post.
-module.exports.delete_post = function(req, res) {
+module.exports.delete_post = function(req, res, next) {
     if(req.user) {
-        var authUserId = req.user._id;
-        var postId = req.body._id;
+        var authUserId = req.user._id; // String
+        var postId = req.body._id; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(postId))) {
-            throw new Error('authUserId and/or postId provided is not an instance of ObjectId.');
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(postId)) {
+            throw new Error('Bad parameters.');
         }
 
         return Post.findById(postId).exec().then(function(post) {
@@ -89,7 +89,7 @@ module.exports.delete_post = function(req, res) {
                 });
             }
 
-            if(post.userId === authUserId) {
+            if(post.userId.toString() === authUserId) {
                 return post.remove().then(function() {
                     res.json({
                         message: 'Post successfully deleted.',
@@ -115,13 +115,13 @@ module.exports.delete_post = function(req, res) {
 }
 
 // Gets a post.
-module.exports.get_post = function(req, res) {
-    var postId = req.params.postId;
+module.exports.get_post = function(req, res, next) {
+    var postId = req.params.postId; // String
 
     var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
     if(!checkForHexRegExp.test(postId)) {
-        throw new Error('postId provided is not an instance of ObjectId.');
+        throw new Error('Bad parameters.');
     }
 
     return Post.findById(postId).populate({
@@ -142,8 +142,8 @@ module.exports.get_post = function(req, res) {
 }
 
 // Gets a post's comments.
-module.exports.get_post_comments = function(req, res) {
-    var postId = req.params.postId;
+module.exports.get_post_comments = function(req, res, next) {
+    var postId = req.params.postId; // String
 
     var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 

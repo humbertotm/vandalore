@@ -23,7 +23,8 @@ mongoose.Promise = require('bluebird');
 
 describe('Categories controller', function() {
     describe('get_posts', function() {
-        var req, res, cat, post1, post2, catMock, id1, id2, id3;
+        var req, res, cat, post1, post2,
+            catMock, id1, id2, id3, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -32,12 +33,16 @@ describe('Categories controller', function() {
             id3 = mongoose.Types.ObjectId();
 
             req = mockHttp.createRequest({
-
+                params: {
+                    categoryId: '1'
+                }
             });
 
             res = mockHttp.createResponse();
 
             catMock = sandbox.mock(Category);
+
+            next = sandbox.spy();
 
             cat = new Category({
                 _id: 1,
@@ -74,12 +79,12 @@ describe('Categories controller', function() {
             });
         });
 
-        it('responds with err when Category.findById() rejects', function(done) {
+        it('passes err to next() when Category.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
                 }
-            }
+            };
 
             catMock
                 .expects('findById')
@@ -87,29 +92,44 @@ describe('Categories controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            catController.get_posts(req, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            catController.get_posts(req, res, next).then(function() {
                 catMock.verify();
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws if categoryId is not the correct type', function() {
+            var badReq = mockHttp.createRequest({
+                params: {
+                    categoryId: 'someId'
+                }
+            });
+
+            // Not working.
+            // It is throwing before assertion is made.
+            // Somehow it failling proves its working fine.
+            expect(catController.get_posts(badReq, res, next)).to.throw(Error);
         });
     });
 
     describe('get_more_posts', function() {
         var req, res, id1, id2, id3, id4, id5,
-                cat, post3, post4, catMock, pop, execPop;
+            next, cat, post3, post4, catMock, pop, execPop;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
+            id1 = mongoose.Types.ObjectId;
+            id2 = mongoose.Types.ObjectId;
+            id3 = mongoose.Types.ObjectId;
+            id4 = mongoose.Types.ObjectId;
+            id5 = mongoose.Types.ObjectId;
+
             req = mockHttp.createRequest({
-                method: 'GET',
-                url: '/categories/:categoryId/posts/:postId',
+                // All params are parsed as Strings.
                 params: {
-                    categoryId: 1,
-                    maxId: id3
+                    categoryId: '1',
+                    maxId: 'cccccccccccccccccccccccc'
                 }
             });
 
@@ -125,8 +145,8 @@ describe('Categories controller', function() {
             post4 = new Post();
 
             catMock = sandbox.mock(Category);
-            // pop = sandbox.stub(Category.prototype, 'populate');
             execPop = sandbox.stub(Category.prototype, 'execPopulate');
+            next = sandbox.spy();
         });
 
         afterEach(function() {
@@ -149,21 +169,18 @@ describe('Categories controller', function() {
 
             execPop.returnsPromise().resolves(popCat);
 
-            catController.get_more_posts(req, res).then(function() {
+            catController.get_more_posts(req, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 catMock.verify();
-                // expect(pop.called).to.equal(true);
                 expect(execPop.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
                 expect(data.length).to.equal(2);
                 done()
             });
-
-
         });
 
-        it('responds with err when Category.findById() rejects', function(done) {
+        it('calls next(err) when Category.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -175,17 +192,14 @@ describe('Categories controller', function() {
                 .chain('exec')
                 .rejects(err);
 
-            catController.get_more_posts(req, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            catController.get_more_posts(req, res, next).then(function() {
                 catMock.verify();
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
 
-        it('responds with err when doc.execPopulate() rejects', function(done) {
+        it('calls next(err) when doc.execPopulate() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -199,15 +213,24 @@ describe('Categories controller', function() {
 
             execPop.returnsPromise().rejects(err);
 
-            catController.get_more_posts(req, res).then(function() {
-                var data = JSON.parse(res._getData());
-
+            catController.get_more_posts(req, res, next).then(function() {
                 catMock.verify();
                 expect(execPop.called).to.equal(true);
-                expect(res.statusCode).to.equal(500);
-                expect(data.errors).to.exist;
+                expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
+        });
+
+        it.skip('throws when bad parameters are passed', function() {
+            // Same issue as above.
+            var badReq = mockHttp.createRequest({
+                params: {
+                    maxId: 'cccc',
+                    categoryId: '2'
+                }
+            });
+
+            expect(catController.get_more_posts(badReq, res, next)).to.throw(Error);
         });
     });
 });
