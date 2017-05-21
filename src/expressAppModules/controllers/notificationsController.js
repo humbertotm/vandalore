@@ -1,9 +1,9 @@
 // Require neccessary models.
-var Notification = require('../models/notificationModel');
-var User = require('../models/userModel');
+var Notification = require('../models/notificationModel'),
+    User         = require('../models/userModel');
 
 // Require mongoose and set bluebird to handle its promises.
-var  mongoose = require('mongoose');
+var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 
 // Gets notifications for a user.

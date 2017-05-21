@@ -1,7 +1,8 @@
 // require Category model.
-var Category = require('../models/categoryModel');
+var Category     = require('../models/categoryModel');
 
-var mongoose = require('mongoose');
+// require mongoose and set promises to Bluebird.
+var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 
 module.exports.get_posts = function(req, res, next) {

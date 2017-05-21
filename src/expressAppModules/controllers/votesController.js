@@ -1,14 +1,14 @@
 // Require neccessary models.
-var Vote = require('../models/voteModel');
-var User = require('../models/userModel');
-var Post = require('../models/postModel');
-var Notification = require('../models/notificationModel');
+var Vote         = require('../models/voteModel'),
+    User         = require('../models/userModel'),
+    Post         = require('../models/postModel'),
+    Notification = require('../models/notificationModel');
 
 // Require mongoose and set bluebird to handle its promises.
-var  mongoose = require('mongoose');
+var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-var votesForHot = require('../utils').votesForHot;
+var votesForHot  = require('../utils').votesForHot;
 
 // Creates a new vote and sends it in response.
 module.exports.create_vote = function(req, res, next) {

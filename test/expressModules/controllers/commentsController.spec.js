@@ -2,20 +2,21 @@
 var commentsController = require('../../../src/expressAppModules/controllers/commentsController');
 
 // Require models
-var Comment = require('../../../src/expressAppModules/models/commentModel');
-var User = require('../../../src/expressAppModules/models/userModel');
-var Post = require('../../../src/expressAppModules/models/postModel');
+var Comment            = require('../../../src/expressAppModules/models/commentModel'),
+    User               = require('../../../src/expressAppModules/models/userModel'),
+    Post               = require('../../../src/expressAppModules/models/postModel');
 
 // Require testing tools
-var chai = require('chai');
-var chaiHttp = require('chai-http');
-var expect = chai.expect;
+var chai               = require('chai'),
+    chaiHttp           = require('chai-http'),
+    expect             = chai.expect;
 chai.use(chaiHttp);
 
-var mockHttp = require('node-mocks-http');
-var sinon = require('sinon');
+var mockHttp           = require('node-mocks-http'),
+    sinon              = require('sinon'),
+    sinonStubPromise   = require('sinon-stub-promise');
+
 require('sinon-mongoose');
-var sinonStubPromise = require('sinon-stub-promise');
 sinonStubPromise(sinon);
 
 // Require mongoose.
@@ -34,6 +35,7 @@ describe('Comments controller', function() {
             id1 = mongoose.Types.ObjectId();
             id2 = mongoose.Types.ObjectId();
             id3 = mongoose.Types.ObjectId();
+
             next = sandbox.spy();
             save = sandbox.stub(Comment.prototype, 'save');
 
@@ -147,7 +149,7 @@ describe('Comments controller', function() {
                 comment: comment
             });
 
-            res = mockHttp.createResponse();
+            res  = mockHttp.createResponse();
             next = sandbox.spy();
         });
 
@@ -275,8 +277,8 @@ describe('Comments controller', function() {
 
     describe('delete_comment', function() {
         var reqWithUser, reqWithoutUser, res,
-                id1, id2, id3, id4, id5,
-                comment, commentMock, remove, next;
+            id1, id2, id3, id4, id5,
+            comment, commentMock, remove, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -322,9 +324,8 @@ describe('Comments controller', function() {
             });
 
             commentMock = sandbox.mock(Comment);
-
-            remove = sandbox.stub(Comment.prototype, 'remove');
-            next = sandbox.spy();
+            remove      = sandbox.stub(Comment.prototype, 'remove');
+            next        = sandbox.spy();
         });
 
         afterEach(function() {

@@ -1,25 +1,26 @@
 // Require controller
-var relController = require('../../../src/expressAppModules/controllers/relationshipsController');
+var relController    = require('../../../src/expressAppModules/controllers/relationshipsController');
 
 // Require models
-var Relationship = require('../../../src/expressAppModules/models/relationshipModel');
-var User = require('../../../src/expressAppModules/models/userModel');
+var Relationship     = require('../../../src/expressAppModules/models/relationshipModel'),
+    User             = require('../../../src/expressAppModules/models/userModel');
 
 // Require testing tools
-var chai = require('chai');
-var chaiHttp = require('chai-http');
-var expect = chai.expect;
+var chai             = require('chai'),
+    chaiHttp         = require('chai-http'),
+    expect           = chai.expect;
 chai.use(chaiHttp);
 
-var mockHttp = require('node-mocks-http');
-var sinon = require('sinon');
+var mockHttp         = require('node-mocks-http'),
+    sinon            = require('sinon'),
+    sinonStubPromise = require('sinon-stub-promise');
+
 require('sinon-mongoose');
-var sinonStubPromise = require('sinon-stub-promise');
 sinonStubPromise(sinon);
 
 // Require mongoose.
-var mongoose = require('mongoose');
-mongoose.Promise = require('bluebird');
+var mongoose         = require('mongoose');
+mongoose.Promise     = require('bluebird');
 
 describe('Relationships controller', function() {
     describe('create_relationship', function() {
@@ -135,10 +136,10 @@ describe('Relationships controller', function() {
             id2 = mongoose.Types.ObjectId();
             id3 = mongoose.Types.ObjectId();
 
-            save = sandbox.spy(User.prototype, 'save');
+            save       = sandbox.spy(User.prototype, 'save');
             consoleLog = sandbox.stub(console, 'log');
             promiseAll = sandbox.stub(Promise, 'all');
-            next = sandbox.spy();
+            next       = sandbox.spy();
 
             follower = new User({
                 _id: id1,
@@ -233,8 +234,8 @@ describe('Relationships controller', function() {
             });
 
             relMock = sandbox.mock(Relationship);
-            remove = sandbox.stub(Relationship.prototype, 'remove');
-            next = sandbox.spy();
+            remove  = sandbox.stub(Relationship.prototype, 'remove');
+            next    = sandbox.spy();
         });
 
         afterEach(function() {

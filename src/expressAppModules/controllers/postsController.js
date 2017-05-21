@@ -1,10 +1,10 @@
 // Require necessary models.
-var Post = require('../models/postModel');
-var User = require('../models/userModel');
-var Category = require('../../../src/expressAppModules/models/categoryModel');
+var Post         = require('../models/postModel'),
+    User         = require('../models/userModel'),
+    Category     = require('../../../src/expressAppModules/models/categoryModel');
 
 // Require mongoose and set bluebird to handle its promises.
-var  mongoose = require('mongoose');
+var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 
 // Creates and responds with a new post.

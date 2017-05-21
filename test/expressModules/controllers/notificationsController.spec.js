@@ -1,31 +1,32 @@
 // Require controller
-var notiController = require('../../../src/expressAppModules/controllers/notificationsController');
+var notiController   = require('../../../src/expressAppModules/controllers/notificationsController');
 
 // Require models
-var Notification = require('../../../src/expressAppModules/models/notificationModel');
-var User = require('../../../src/expressAppModules/models/userModel');
+var Notification     = require('../../../src/expressAppModules/models/notificationModel'),
+    User             = require('../../../src/expressAppModules/models/userModel');
 
 // Require testing tools
-var chai = require('chai');
-var chaiHttp = require('chai-http');
-var expect = chai.expect;
+var chai             = require('chai'),
+    chaiHttp         = require('chai-http'),
+    expect           = chai.expect;
 chai.use(chaiHttp);
 
-var mockHttp = require('node-mocks-http');
-var sinon = require('sinon');
+var mockHttp         = require('node-mocks-http'),
+    sinon            = require('sinon'),
+    sinonStubPromise = require('sinon-stub-promise');
+
 require('sinon-mongoose');
-var sinonStubPromise = require('sinon-stub-promise');
 sinonStubPromise(sinon);
 
 // Require mongoose.
-var mongoose = require('mongoose');
-mongoose.Promise = require('bluebird');
+var mongoose         = require('mongoose');
+mongoose.Promise     = require('bluebird');
 
 describe('Notifactions controller', function() {
     describe('get_notifications', function() {
         var reqWithUser, reqWithoutUser, res,
-        id1, id2, id3, id4, id5,
-        noti1, noti2, user, userMock, next;
+            id1, id2, id3, id4, id5,
+            noti1, noti2, user, userMock, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -54,8 +55,6 @@ describe('Notifactions controller', function() {
                 }
             });
 
-            res = mockHttp.createResponse();
-
             noti1 = new Notification({
                 _id: id2,
                 userId: id1,
@@ -78,8 +77,8 @@ describe('Notifactions controller', function() {
             });
 
             userMock = sandbox.mock(User);
-
-            next = sandbox.spy();
+            next     = sandbox.spy();
+            res      = mockHttp.createResponse();
         });
 
         afterEach(function() {
@@ -151,8 +150,8 @@ describe('Notifactions controller', function() {
 
     describe('mark_notification_as_read', function() {
         var reqWithUser, reqWithoutUser, res,
-                id1, id2, id3, id4, noti,
-                notiMock, save, next;
+            id1, id2, id3, id4, noti,
+            notiMock, save, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -196,13 +195,10 @@ describe('Notifactions controller', function() {
                 }
             });
 
-            res = mockHttp.createResponse();
-
+            res      = mockHttp.createResponse();
             notiMock = sandbox.mock(Notification);
-
-            save = sandbox.stub(Notification.prototype, 'save');
-
-            next = sandbox.spy();
+            save     = sandbox.stub(Notification.prototype, 'save');
+            next     = sandbox.spy();
         });
 
         afterEach(function() {

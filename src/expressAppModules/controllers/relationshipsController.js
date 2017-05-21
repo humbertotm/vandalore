@@ -1,9 +1,9 @@
 // Require necessary models.
-var Relationship = require('../models/relationshipModel');
-var User = require('../models/userModel');
+var Relationship = require('../models/relationshipModel'),
+    User         = require('../models/userModel');
 
 // Require mongoose and set bluebird to handle its promises.
-var  mongoose = require('mongoose');
+var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 
 // Creates and responds with new relationship.
