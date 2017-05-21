@@ -1,7 +1,9 @@
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
+var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
-var bcrypt = require('bcryptjs');
+
+var Schema       = mongoose.Schema;
+
+var bcrypt       = require('bcryptjs');
 
 var userSchema = new Schema({
     local: {

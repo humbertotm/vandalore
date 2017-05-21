@@ -1,27 +1,29 @@
 // Require controller
-var votesController = require('../../../src/expressAppModules/controllers/votesController');
+var votesController  = require('../../../src/expressAppModules/controllers/votesController');
 
 // Require models
-var Vote = require('../../../src/expressAppModules/models/voteModel');
-var User = require('../../../src/expressAppModules/models/userModel');
-var Post = require('../../../src/expressAppModules/models/postModel');
-var Notification = require('../../../src/expressAppModules/models/notificationModel');
+var Vote             = require('../../../src/expressAppModules/models/voteModel'),
+    User             = require('../../../src/expressAppModules/models/userModel'),
+    Post             = require('../../../src/expressAppModules/models/postModel'),
+    Notification     = require('../../../src/expressAppModules/models/notificationModel');
 
 // Require testing tools
-var chai = require('chai');
-var chaiHttp = require('chai-http');
-var expect = chai.expect;
+var chai             = require('chai'),
+    chaiHttp         = require('chai-http'),
+    expect           = chai.expect;
+
 chai.use(chaiHttp);
 
-var mockHttp = require('node-mocks-http');
-var sinon = require('sinon');
+var mockHttp         = require('node-mocks-http'),
+    sinon            = require('sinon'),
+    sinonStubPromise = require('sinon-stub-promise');
+
 require('sinon-mongoose');
-var sinonStubPromise = require('sinon-stub-promise');
 sinonStubPromise(sinon);
 
 // Require mongoose.
-var mongoose = require('mongoose');
-mongoose.Promise = require('bluebird');
+var mongoose         = require('mongoose');
+mongoose.Promise     = require('bluebird');
 
 describe('Votes controller', function() {
     describe('create_vote', function() {
@@ -424,7 +426,8 @@ describe('Votes controller', function() {
     });
 
     describe('delete_vote', function() {
-        var reqWithUser, reqWithoutUser, res, id1, id2, id3, id4, id5,
+        var reqWithUser, reqWithoutUser, res,
+            id1, id2, id3, id4, id5,
             next, vote, remove, voteMock;
         var sandbox = sinon.sandbox.create();
 

@@ -1,10 +1,10 @@
 // Require neccessary models.
-var Comment = require('../models/commentModel');
-var User = require('../models/userModel');
-var Post = require('../models/postModel');
+var Comment      = require('../models/commentModel'),
+    User         = require('../models/userModel'),
+    Post         = require('../models/postModel');
 
 // Require mongoose and set bluebird to handle its promises.
-var  mongoose = require('mongoose');
+var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 
 // Creates a comment and sends it in reponse.

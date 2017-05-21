@@ -1,25 +1,26 @@
 // Require controller
-var catController = require('../../../src/expressAppModules/controllers/categoriesController');
+var catController    = require('../../../src/expressAppModules/controllers/categoriesController');
 
 // Require models
-var Category = require('../../../src/expressAppModules/models/categoryModel');
-var Post = require('../../../src/expressAppModules/models/postModel');
+var Category         = require('../../../src/expressAppModules/models/categoryModel'),
+    Post             = require('../../../src/expressAppModules/models/postModel');
 
 // Require testing tools
-var chai = require('chai');
-var chaiHttp = require('chai-http');
-var expect = chai.expect;
+var chai             = require('chai'),
+    chaiHttp         = require('chai-http'),
+    expect           = chai.expect;
 chai.use(chaiHttp);
 
-var mockHttp = require('node-mocks-http');
-var sinon = require('sinon');
+var mockHttp         = require('node-mocks-http'),
+    sinon            = require('sinon'),
+    sinonStubPromise = require('sinon-stub-promise');
+
 require('sinon-mongoose');
-var sinonStubPromise = require('sinon-stub-promise');
 sinonStubPromise(sinon);
 
 // Require mongoose.
-var mongoose = require('mongoose');
-mongoose.Promise = require('bluebird');
+var mongoose         = require('mongoose');
+mongoose.Promise     = require('bluebird');
 
 describe('Categories controller', function() {
     describe('get_posts', function() {
@@ -38,11 +39,9 @@ describe('Categories controller', function() {
                 }
             });
 
-            res = mockHttp.createResponse();
-
+            res     = mockHttp.createResponse();
             catMock = sandbox.mock(Category);
-
-            next = sandbox.spy();
+            next    = sandbox.spy();
 
             cat = new Category({
                 _id: 1,
@@ -146,7 +145,7 @@ describe('Categories controller', function() {
 
             catMock = sandbox.mock(Category);
             execPop = sandbox.stub(Category.prototype, 'execPopulate');
-            next = sandbox.spy();
+            next    = sandbox.spy();
         });
 
         afterEach(function() {

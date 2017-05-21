@@ -1,6 +1,8 @@
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
+var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
+
+var Schema       = mongoose.Schema;
+
 
 var voteSchema = new Schema({
     userId: { type: Schema.Types.ObjectId, ref: 'User',

@@ -1,32 +1,33 @@
 // Require controller
-var postsController = require('../../../src/expressAppModules/controllers/postsController');
+var postsController  = require('../../../src/expressAppModules/controllers/postsController');
 
 // Require models
-var Post = require('../../../src/expressAppModules/models/postModel');
-var User = require('../../../src/expressAppModules/models/userModel');
-var Category = require('../../../src/expressAppModules/models/categoryModel');
-var Comment = require('../../../src/expressAppModules/models/commentModel');
+var Post             = require('../../../src/expressAppModules/models/postModel'),
+    User             = require('../../../src/expressAppModules/models/userModel'),
+    Category         = require('../../../src/expressAppModules/models/categoryModel'),
+    Comment          = require('../../../src/expressAppModules/models/commentModel');
 
 // Require testing tools
-var chai = require('chai');
-var chaiHttp = require('chai-http');
-var expect = chai.expect;
+var chai             = require('chai'),
+    chaiHttp         = require('chai-http'),
+    expect           = chai.expect;
 chai.use(chaiHttp);
 
-var mockHttp = require('node-mocks-http');
-var sinon = require('sinon');
+var mockHttp         = require('node-mocks-http'),
+    sinon            = require('sinon'),
+    sinonStubPromise = require('sinon-stub-promise');
+
 require('sinon-mongoose');
-var sinonStubPromise = require('sinon-stub-promise');
 sinonStubPromise(sinon);
 
 // Require mongoose.
-var mongoose = require('mongoose');
-mongoose.Promise = require('bluebird');
+var mongoose         = require('mongoose');
+mongoose.Promise     = require('bluebird');
 
 describe('Posts controller', function() {
     describe('create_post', function() {
         var id1, id2, id3, save, next, post,
-                reqWithUser, reqWithoutUser, res;
+            reqWithUser, reqWithoutUser, res;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -73,8 +74,7 @@ describe('Posts controller', function() {
                 }
             });
 
-            res = mockHttp.createResponse();
-
+            res  = mockHttp.createResponse();
             save = sandbox.stub(Post.prototype, 'save');
             next = sandbox.spy();
         });
@@ -138,9 +138,8 @@ describe('Posts controller', function() {
 
     describe('push_and_save_post middleware', function() {
         var id1, id2, id3, userMock, categoryMock,
-                consoleLog, promiseAll, post, user, category,
-                userSave, categorySave, req, res, next;
-
+            consoleLog, promiseAll, post, user, category,
+            userSave, categorySave, req, res, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -171,15 +170,14 @@ describe('Posts controller', function() {
                 post: post
             });
 
-            res = mockHttp.createResponse();
-
-            userMock = sandbox.mock(User);
+            res          = mockHttp.createResponse();
+            userMock     = sandbox.mock(User);
             categoryMock = sandbox.mock(Category);
-            consoleLog = sandbox.spy(console, 'log');
-            promiseAll = sandbox.stub(Promise, 'all');
-            userSave = sandbox.stub(User.prototype, 'save');
+            consoleLog   = sandbox.spy(console, 'log');
+            promiseAll   = sandbox.stub(Promise, 'all');
+            userSave     = sandbox.stub(User.prototype, 'save');
             categorySave = sandbox.stub(Category.prototype, 'save');
-            next = sandbox.spy();
+            next         = sandbox.spy();
         });
 
         afterEach(function() {
@@ -235,8 +233,8 @@ describe('Posts controller', function() {
 
     describe('delete_post', function() {
         var reqWithUser, reqWithoutUser, res,
-                mockPost, remove, user, post,
-                id1, id2, id3, id4, next;
+            mockPost, remove, user, post,
+            id1, id2, id3, id4, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -282,11 +280,10 @@ describe('Posts controller', function() {
                 }
             });
 
-            res = mockHttp.createResponse();
-
+            res      = mockHttp.createResponse();
             mockPost = sandbox.mock(Post);
-            remove = sandbox.stub(Post.prototype, 'remove');
-            next = sandbox.spy();
+            remove   = sandbox.stub(Post.prototype, 'remove');
+            next     = sandbox.spy();
         });
 
         afterEach(function() {
@@ -422,7 +419,7 @@ describe('Posts controller', function() {
 
     describe('get_post', function() {
         var req, res, postMock, id1, id2, id3,
-                comm1, comm2, post, next;
+            comm1, comm2, post, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -444,10 +441,9 @@ describe('Posts controller', function() {
                 comments: [comm1, comm2]
             });
 
-            res = mockHttp.createResponse();
-
+            res      = mockHttp.createResponse();
             postMock = sandbox.mock(Post);
-            next = sandbox.spy();
+            next     = sandbox.spy();
         });
 
         afterEach(function() {
@@ -507,7 +503,8 @@ describe('Posts controller', function() {
     });
 
     describe('get_post_comments', function() {
-        var req, res, id1, id2, id3, post, comm1, comm2, postMock, next;
+        var req, res, id1, id2, id3,
+            post, comm1, comm2, postMock, next;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -523,15 +520,13 @@ describe('Posts controller', function() {
                 }
             });
 
-            res = mockHttp.createResponse();
-
+            res      = mockHttp.createResponse();
             postMock = sandbox.mock(Post);
-
-            next = sandbox.spy();
+            next     = sandbox.spy();
 
             comm1 = new Comment();
             comm2 = new Comment();
-            post = new Post({
+            post  = new Post({
                 _id: id1,
                 comments: [comm1, comm2]
             });

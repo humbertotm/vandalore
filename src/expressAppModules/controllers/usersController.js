@@ -1,5 +1,5 @@
 // Require User model.
-var User = require('../models/usersModel');
+var User         = require('../models/usersModel');
 
 // Require hashPassword util function.
 var hashPassword = require('../utils').hashPassword;
