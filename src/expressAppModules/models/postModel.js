@@ -38,11 +38,19 @@ var postSchema = new Schema({
         default: []
     }],
 
+    voteCount: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+
+    /*
     votes: [{
         type: Schema.Types.ObjectId,
         ref: 'Vote',
         default: []
     }],
+    */
 
     hot: {
         type: Boolean,
