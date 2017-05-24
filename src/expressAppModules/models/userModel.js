@@ -91,11 +91,19 @@ var userSchema = new Schema({
         default: []
     }],
 
+    votedPosts: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Post',
+        default: []
+    }],
+
+    /*
     votes: [{
         type: Schema.Types.ObjectId,
         ref: 'Vote',
         default: []
     }],
+    */
 
     comments: [{
         type: Schema.Types.ObjectId,
@@ -135,7 +143,13 @@ var userSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Notification',
         default: []
-    }]
+    }],
+
+    hookEnabled: {
+        type: Boolean,
+        default: true,
+        required: false
+    }
 },
 {
     timestamps: true

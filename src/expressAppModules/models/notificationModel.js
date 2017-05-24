@@ -31,5 +31,22 @@ var notificationSchema = new Schema({
     timestamps: true
 });
 
+notificationSchema.post('save', function(doc, next) {
+    /*
+    User.findById(doc.userId).exec().then(function(user) {
+        user.notifications.push(doc);
+        user.enableHooks = false;
+        return user.save().then(function() {
+            next();
+        });
+    })
+    .catch(function(err) {
+        next(err);
+    });
+    */
+});
+
+// Concurrency edge cases for hooks.
+
 // Export model.
 module.exports = mongoose.model('Notification', notificationSchema);

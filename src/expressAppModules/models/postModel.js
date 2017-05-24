@@ -22,11 +22,8 @@ var postSchema = new Schema({
     },
 
     imageUrl: {
-        // Incorporate file upload to AWS S3 bucket
         type: String,
         required: true
-        // Add validation for file type (jpg, jpeg, gif, png)
-        // Add validation for file size
     },
 
     category: {
@@ -45,11 +42,83 @@ var postSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Vote',
         default: []
-    }]
+    }],
+
+    hot: {
+        type: Boolean,
+        default: false,
+        required: false
+    },
+
+    hookEnabled: {
+        type: Boolean,
+        default: true,
+        required: false
+    }
 },
 {
     timestamps: true
 });
+
+postSchema.post('save', function(doc, next) {
+    /*
+    if(doc.hookEnabled) {
+        var promises = [
+            Category.findById(doc.category).exec(),
+            Category.findById(freshId).exec(),
+            User.findById(doc.userId).exec()
+        ];
+
+        function pushAndSave(owner) {
+            owner.posts.push(doc);
+            owner.hookEnabled = false;
+            return owner.save();
+        }
+
+        return Promise.map(promises, pushAndSave).then(function() {
+            next();
+        }).catch(function(err) {
+            next(err);
+        });
+    } else {
+        next();
+    }
+    */
+});
+
+postSchema.post('remove', function(doc, next) {
+    /*
+    var promises;
+    if(doc.hot) {
+        promises = [
+            // Less queries?
+            User.findById(doc.userId).exec(),
+            Category.findById(doc.category).exec(),
+            Category.findById(freshId).exec(),
+            Category.findById(hotId).exec()
+        ];
+    }
+
+    promises = [
+        User.findById(doc.userId).exec(),
+        Category.findById(doc.category).exec(),
+        Category.findById(freshId).exec()
+    ];
+
+    function removeFromOwner(owner) {
+        // Eliminate post from owner.posts;
+        return owner.save();
+    }
+
+    return Promise.map(promises, removeFromOwner).then(function() {
+        next();
+    }).catch(function(err) {
+        next(err);
+    });
+    */
+});
+
+// Concurrency edge cases for hooks.
 
 // Export model.
 module.exports = mongoose.model('Post', postSchema);

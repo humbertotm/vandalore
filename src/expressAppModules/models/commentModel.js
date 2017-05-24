@@ -26,7 +26,48 @@ var commentSchema = new Schema({
     timestamps: true
 });
 
-// add methods to remove deleted docs from references in other docs.
+commentSchema.post('save', function(doc, next) {
+    /*
+    var promises = [
+        Post.findById(doc.postId).exec(),
+        User.findById(doc.userId).exec()
+    ];
+
+    function pushAndSave(owner) {
+        owner.comments.push(doc);
+        owner.hookEnabled = false;
+        return owner.save();
+    }
+
+    return Promise.map(promises, pushAndSave).then(function() {
+        next();
+    }).catch(function(err) {
+        next(err);
+    });
+    */
+});
+
+commentSchema.post('remove', function(doc, next) {
+    /*
+    var promises = [
+        Post.findById(doc.postId).exec(),
+        User.findById(doc.userId).exec()
+    ];
+
+    function removeFromOwner(owner) {
+        // Remove from owner.comments();
+        return owner.save();
+    }
+
+    return Promise.map(promises, removeFromOwner).then(function() {
+        next();
+    }).catch(function(err) {
+        next(err);
+    });
+    */
+});
+
+// Concurrency edge cases for hooks.
 
 // Export model.
 module.exports = mongoose.model('Comment', commentSchema);

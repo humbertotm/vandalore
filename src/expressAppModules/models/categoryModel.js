@@ -16,7 +16,13 @@ var categorySchema = new Schema({
     posts: [{
         type: Schema.Types.ObjectId,
         ref: 'Post'
-    }]
+    }],
+
+    hookEnabled: {
+        type: Boolean,
+        default: true,
+        required: false
+    }
 });
 
 // Export model.
