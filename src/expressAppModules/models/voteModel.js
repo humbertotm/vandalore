@@ -1,3 +1,5 @@
+// This model will be dropped.
+
 var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 

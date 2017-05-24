@@ -10,6 +10,8 @@ mongoose.Promise = require('bluebird');
 
 var votesForHot  = require('../utils').votesForHot;
 
+/*
+// Decomissioned middleware. Substituted by the function below.
 // Creates a new vote and sends it in response.
 module.exports.create_vote = function(req, res, next) {
     if(req.user) {
@@ -41,7 +43,75 @@ module.exports.create_vote = function(req, res, next) {
         });
     }
 }
+*/
 
+module.exports.create_vote = function(req, res, next) {
+    if(req.user) {
+        var userId = req.user._id; // String
+        var postId = req.body.postId; // String
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!checkForHexRegExp.test(userId) || !checkForHexRegExp.test(postId)) {
+            throw new Error('Bad parameters.');
+        }
+
+        var promises = [
+            // What if any of these return null?
+            Post.findById(postId).exec(),
+            User.findById(userId).exec()
+        ];
+
+        function addVote(owner) {
+            if(owner.constructor.modelName === 'Post') {
+                owner.voteCount ++;
+                owner.hookEnabled = false;
+                return owner.save();
+            }
+
+            // If user
+            owner.votedPosts.push(postId);
+            owner.hookEnabled = false;
+            return owner.save();
+        }
+
+        return Promise.map(promises, addVote).then(function() {
+            next();
+        })
+        .catch(function(err) {
+            next(err);
+        });
+    } else {
+        // If no authenticated user
+        res.status(401).json({
+            message: 'Please authenticate.'
+        });
+    }
+}
+
+module.exports.vote_count = function(req, res, next) {
+    var postId = req.body.postId;
+
+    return Post.findById(postId).then(function(post) {
+        if(post.hot) {
+            return;
+          // watch out for asynchronicity here.
+        } else if(!post.hot && (post.voteCount > votesForHot())) {
+            var noti = new Notification({
+                userId: post.userId,
+                postId: post._id,
+                message: 'Your post has reached the Hot page!'
+            });
+            return noti.save();
+        } else {
+            return;
+        }
+    }).catch(function(err) {
+        next(err);
+    });
+}
+
+/*
 // Pushes newly created vote into refs in user and post docs.
 module.exports.push_and_save_vote = function(req, res, next) {
     var vote = req.vote;
@@ -123,43 +193,45 @@ module.exports.push_and_save_notification = function(req, res, next) {
         next(err);
     });
 }
+*/
 
 // Deletes a vote.
+// Refactor this shit.
 module.exports.delete_vote = function(req, res, next) {
     if(req.user) {
         var authUserId = req.user._id; // String
-        var voteId = req.body._id; // String
+        var postId     = req.body.postId; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(voteId)) {
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(postId)) {
             throw new Error('Bad parameters.');
         }
 
-        return Vote.findById(voteId).exec().then(function(vote) {
-            if(vote === null) {
-                res.status(404).json({
-                    message: 'Vote not found.'
-                });
-            }
-
-            if(vote.userId.toString() === authUserId) {
-                return vote.remove().then(function() {
-                    res.json({
-                        message: "Vote successfully deleted.",
-                        voteId: voteId
-                    });
-                });
-            } else {
-                // If authenticated user does not match owner of vote doc.
-                res.status(403).json({
+        return User.findById(authUserId).then(function(user) {
+            // Remember postId is a String;
+            if(user.votedPosts.indexOf(postId) === -1) {
+                return res.status(403).json({
                     message: 'You are not authorized to perform this operation.'
                 });
             }
-        })
-        .catch(function(err) {
+
+            // Remove postId from user.votePosts
+            return user.save().then(function() {
+                return Post.findById(postId).exec().then(function(post) {
+                    post.voteCount --;
+                    post.hookEnabled = false;
+                    return post.save().then(function() {
+                        res.json({
+                            message: 'Vote successfully deleted.'
+                        });
+                    });
+                });
+            });
+
+        }).catch(function(err) {
             next(err);
-        })
+        });
     } else {
         // If no authenticated user
         res.status(401).json({
