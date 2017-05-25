@@ -1,5 +1,5 @@
 // This model will be dropped.
-
+/*
 var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 
@@ -19,7 +19,6 @@ var voteSchema = new Schema({
 voteSchema.index({ userId: 1, postId: 1 }, { unique: true });
 
 voteSchema.post('save', function(doc, next) {
-    /*
     var promises = [
         Post.findById(doc.postId).exec(),
         User.findById(doc.userId).exec()
@@ -43,11 +42,9 @@ voteSchema.post('save', function(doc, next) {
     .catch(function(err) {
         next(err);
     });
-    */
 });
 
 voteSchema.post('save', function(doc, next) {
-    /*
     Post.findById(doc.postId).then(function(post) {
         if(post.hot) {
             next();
@@ -67,11 +64,9 @@ voteSchema.post('save', function(doc, next) {
     .catch(function(err) {
         next(err);
     });
-    */
 });
 
 voteSchema.post('remove', function(doc, next) {
-    /*
     var promises = [
         User.findById(doc.userId).exec(),
         Post.findById(doc.postId).exec()
@@ -94,7 +89,6 @@ voteSchema.post('remove', function(doc, next) {
     }).catch(function(err) {
         next(err);
     });
-    */
 });
 
 
@@ -102,3 +96,4 @@ voteSchema.post('remove', function(doc, next) {
 
 // Export model.
 module.exports = mongoose.model('Vote', voteSchema);
+*/

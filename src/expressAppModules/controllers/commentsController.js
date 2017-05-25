@@ -5,7 +5,8 @@ var Comment      = require('../models/commentModel'),
 
 // Require mongoose and set bluebird to handle its promises.
 var mongoose     = require('mongoose');
-mongoose.Promise = require('bluebird');
+var Promise      = require('bluebird');
+mongoose.Promise = Promise;
 
 // Creates a comment and sends it in reponse.
 module.exports.create_comment = function(req, res, next) {
@@ -42,6 +43,8 @@ module.exports.create_comment = function(req, res, next) {
 }
 
 // Push and save newly created comment into user and post doc refs.
+// Will be substituted by post('save') hook.
+/*
 module.exports.push_and_save_comment = function(req, res, next) {
     var comment = req.comment;
     var userId = comment.userId; // ObjectId
@@ -71,6 +74,7 @@ module.exports.push_and_save_comment = function(req, res, next) {
         next(err);
     });
 }
+*/
 
 // Deletes a comment.
 module.exports.delete_comment = function(req, res, next) {

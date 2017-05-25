@@ -126,6 +126,7 @@ describe('Relationships controller', function() {
         });
     });
 
+/*
     describe.skip('push_and_save_rel middleware', function() {
         var id1, id2, id3, rel, save, follower, followed,
             consoleLog, promiseAll, userMock;
@@ -190,6 +191,7 @@ describe('Relationships controller', function() {
 
         });
     });
+*/
 
     describe('delete_relationship', function() {
         var reqWithUser, reqWithoutUser, res,
