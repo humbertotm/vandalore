@@ -6,7 +6,8 @@ var Vote         = require('../models/voteModel'),
 
 // Require mongoose and set bluebird to handle its promises.
 var mongoose     = require('mongoose');
-mongoose.Promise = require('bluebird');
+var Promise      = require('bluebird');
+mongoose.Promise = Promise;
 
 var votesForHot  = require('../utils').votesForHot;
 
@@ -57,13 +58,13 @@ module.exports.create_vote = function(req, res, next) {
         }
 
         var promises = [
-            // What if any of these return null?
+            // What if any of these resolves to null?
             Post.findById(postId).exec(),
             User.findById(userId).exec()
         ];
 
         function addVote(owner) {
-            if(owner.constructor.modelName === 'Post') {
+            if(owner.constructor.modelName == 'Post') {
                 owner.voteCount ++;
                 owner.hookEnabled = false;
                 return owner.save();
@@ -76,6 +77,11 @@ module.exports.create_vote = function(req, res, next) {
         }
 
         return Promise.map(promises, addVote).then(function() {
+            // What are the results returned by Promise.map?
+            // How can I set req.post?
+            res.json({
+                message: 'Vote successfully created.'
+            });
             next();
         })
         .catch(function(err) {
@@ -197,7 +203,7 @@ module.exports.push_and_save_notification = function(req, res, next) {
 
 // Deletes a vote.
 // Refactor this shit.
-module.exports.delete_vote = function(req, res, next) {
+module.exports.delete_vote_user = function(req, res, next) {
     if(req.user) {
         var authUserId = req.user._id; // String
         var postId     = req.body.postId; // String
@@ -208,28 +214,21 @@ module.exports.delete_vote = function(req, res, next) {
             throw new Error('Bad parameters.');
         }
 
-        return User.findById(authUserId).then(function(user) {
-            // Remember postId is a String;
+        return User.findById(authUserId).exec().then(function(user) {
+            // Remember, postId is a String
             if(user.votedPosts.indexOf(postId) === -1) {
                 return res.status(403).json({
                     message: 'You are not authorized to perform this operation.'
                 });
             }
 
-            // Remove postId from user.votePosts
+            // Remove postId from user.votedPosts
+            user.enableHook = false;
             return user.save().then(function() {
-                return Post.findById(postId).exec().then(function(post) {
-                    post.voteCount --;
-                    post.hookEnabled = false;
-                    return post.save().then(function() {
-                        res.json({
-                            message: 'Vote successfully deleted.'
-                        });
-                    });
-                });
+                next();
             });
-
-        }).catch(function(err) {
+        })
+        .catch(function(err) {
             next(err);
         });
     } else {
@@ -238,4 +237,21 @@ module.exports.delete_vote = function(req, res, next) {
             message: 'Please authenticate.'
         });
     }
+}
+
+module.exports.delete_vote_post = function(req, res, next) {
+    var postId = req.body.postId;
+
+    return Post.findById(postId).exec().then(function(post) {
+        post.voteCount --;
+        post.enableHook = false;
+        return post.save().then(function() {
+            res.json({
+                message: 'Vote successfully deleted.'
+            });
+        });
+    })
+    .catch(function(err) {
+        next(err);
+    });
 }

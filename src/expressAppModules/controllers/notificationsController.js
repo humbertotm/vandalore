@@ -4,7 +4,8 @@ var Notification = require('../models/notificationModel'),
 
 // Require mongoose and set bluebird to handle its promises.
 var mongoose     = require('mongoose');
-mongoose.Promise = require('bluebird');
+var Promise      = require('bluebird');
+mongoose.Promise = Promise;
 
 // Gets notifications for a user.
 module.exports.get_notifications = function(req, res, next) {

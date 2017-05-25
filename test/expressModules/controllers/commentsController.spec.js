@@ -129,6 +129,7 @@ describe('Comments controller', function() {
         });
     });
 
+/*
     describe('push_and_save_comment middleware', function() {
         var id1, id2, id3, comment, user, post, req, res, next;
         var sandbox = sinon.sandbox.create();
@@ -274,6 +275,7 @@ describe('Comments controller', function() {
 
         });
     });
+*/
 
     describe('delete_comment', function() {
         var reqWithUser, reqWithoutUser, res,

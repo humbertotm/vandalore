@@ -2,8 +2,7 @@
 var votesController  = require('../../../src/expressAppModules/controllers/votesController');
 
 // Require models
-var Vote             = require('../../../src/expressAppModules/models/voteModel'),
-    User             = require('../../../src/expressAppModules/models/userModel'),
+var User             = require('../../../src/expressAppModules/models/userModel'),
     Post             = require('../../../src/expressAppModules/models/postModel'),
     Notification     = require('../../../src/expressAppModules/models/notificationModel');
 
@@ -23,12 +22,13 @@ sinonStubPromise(sinon);
 
 // Require mongoose.
 var mongoose         = require('mongoose');
-mongoose.Promise     = require('bluebird');
+Promise              = require('bluebird');
 
-describe('Votes controller', function() {
+describe.only('Votes controller', function() {
     describe('create_vote', function() {
-        var reqWithUser, reqWithoutUser, res, vote,
-            id1, id2, id3, err, next, save;
+        var reqWithUser, reqWithoutUser, res, user,
+            post, id1, id2, id3, err, next, promiseMap,
+            userSave, postSave, userMock, postMock;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -41,11 +41,10 @@ describe('Votes controller', function() {
                 method: 'POST',
                 url: '/votes',
                 user: {
-                    _id: 'bbbbbbbbbbbbbbbbbbbbbbbb'
+                    _id: id1.toString()
                 },
                 body: {
-                    postId: 'aaaaaaaaaaaaaaaaaaaaaaaa',
-                    userId: 'bbbbbbbbbbbbbbbbbbbbbbbb'
+                    postId: id2.toString()
                 }
             });
 
@@ -53,14 +52,26 @@ describe('Votes controller', function() {
                 method: 'POST',
                 url: '/votes',
                 body: {
-                    postId: 'cd12sdjjacb1245456543423',
-                    userId: 'abcdacbdacbdacbdabcdabcd'
+                    postId: id2.toString()
                 }
             });
 
-            next = sandbox.spy();
+            next       = sandbox.spy();
+            // userSave   = sandbox.stub(User.prototype, 'save');
+            // postSave   = sandbox.stub(Post.prototype, 'save');
+            userMock   = sandbox.mock(User);
+            postMock   = sandbox.mock(Post);
+            promiseMap = sandbox.stub(Promise, 'map');
 
-            save = sandbox.stub(Vote.prototype, 'save');
+            user = new User({
+                _id: id1,
+                votedPosts: []
+            });
+
+            post = new Post({
+                _id: id2,
+                voteCount: 2
+            });
         });
 
         afterEach(function() {
@@ -68,8 +79,9 @@ describe('Votes controller', function() {
             reqWithUser = {};
             reqWithoutUser = {};
             res = {};
-            vote = {};
             err = {};
+            user = {};
+            post = {};
         });
 
         it('Sends response with 401 status and message if no user is authenticated', function() {
@@ -81,33 +93,46 @@ describe('Votes controller', function() {
         });
 
         it('Returns a newly created vote', function(done) {
-            vote = new Vote({
-                _id: id3,
-                userId: id1,
-                postId: id2
-            });
+            // Since Promise.map() is being stubbed, I have not found a way
+            // to look under the hood to check how the mapper function is working.
+            userMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(user);
 
-            save.returnsPromise().resolves(vote);
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(post);
+
+            // userSave.returnsPromise().resolves();
+            // postSave.returnsPromise().resolves();
+            promiseMap.returnsPromise().resolves();
 
             votesController.create_vote(reqWithUser, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
-                expect(save.called).to.equal(true);
+                userMock.verify();
+                postMock.verify();
+                // expect(userSave.called).to.equal(true);
+                // expect(postSave.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
-                expect(data).to.exist;
+                expect(data.message).to.exist;
                 expect(next.calledOnce).to.equal(true);
                 done();
             });
         });
 
-        it('calls next(err) when saving vote fails', function(done) {
+        it('calls next(err) when Promise.map() rejects', function(done) {
+            // This encompasses a Model.findById() and/or a doc.save() rejecting.
+            // Have not found a way to test specifically for any of these cases.
             err = {
                 errors: {
                     message: 'Something went wrong when saving the vote to the database.'
                 }
             };
 
-            save.returnsPromise().rejects(err);
+            promiseMap.returnsPromise().rejects(err);
 
             votesController.create_vote(reqWithUser, res, next).then(function() {
                 expect(next.withArgs(err).called).to.equal(true);
@@ -132,8 +157,9 @@ describe('Votes controller', function() {
         });
     });
 
-    describe('push_and_save_vote middleware', function() {
-        var vote, user, post, next, id1, id2, id3, req, res;
+    describe('vote_count', function() {
+        var post, noti, next, id1, id2, id3,
+            req, res, postMock, notiSave;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -141,92 +167,140 @@ describe('Votes controller', function() {
             id2 = mongoose.Types.ObjectId();
             id3 = mongoose.Types.ObjectId();
 
-            vote = new Vote({
-                _id: id3,
-                userId: id1,
-                postId: id2
-            });
 
-            next = sandbox.spy();
+            next     = sandbox.spy();
+            notiSave     = sandbox.stub(Notification.prototype, 'save');
+            postMock = sandbox.mock(Post);
 
             req = mockHttp.createRequest({
-                vote: vote
+                body: {
+                    postId: id1.toString()
+                }
             });
 
             res = mockHttp.createResponse();
+
+            noti = new Notification();
         });
 
         afterEach(function() {
             sandbox.restore();
-            vote = {};
-            user = {};
+            noti = {};
             post = {};
         });
 
-        it('makes the appropriate calls when everything goes right', function(done) {
-            user = new User({
-                _id: id1,
-                votes: []
-            });
-
+        it('returns when post is already hot', function(done) {
             post = new Post({
                 _id: id2,
-                votes: []
+                voteCount: 5,
+                hot: true
             });
-
-            var userSave = sandbox.stub(User.prototype, 'save');
-            var postSave = sandbox.stub(Post.prototype, 'save');
-            var promiseAll = sandbox.stub(Promise, 'all');
-
-            var userMock = sandbox.mock(User);
-            var postMock = sandbox.mock(Post);
-
-            userMock
-                .expects('findById')
-                .chain('exec')
-                .resolves(user);
 
             postMock
                 .expects('findById')
                 .chain('exec')
                 .resolves(post);
 
-            userSave.returnsPromise().resolves();
-            postSave.returnsPromise().resolves();
-            promiseAll.returnsPromise().resolves([user, post]);
-
             // Call the middleware function.
-            votesController.push_and_save_vote(req, res, next).then(function() {
-                expect(promiseAll.called).to.equal(true);
-                userMock.verify();
+            votesController.vote_count(req, res, next).then(function() {
                 postMock.verify();
-                expect(userSave.called).to.equal(true);
-                expect(postSave.called).to.equal(true);
-                expect(next.calledOnce).to.equal(true);
+                expect(notiSave.called).to.equal(false);
+                expect(next.calledOnce).to.equal(false);
                 done();
             });
         });
 
-        it('calls next(err) when Promise.all rejects', function(done) {
-            var promiseAll = sandbox.stub(Promise, 'all');
+        it('creates new notification and saves it when post reaches vote count for hot', function(done) {
+            post = new Post({
+                _id: id2,
+                voteCount: 3,
+                hot: false
+            });
 
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(post);
+
+            notiSave.returnsPromise().resolves();
+
+            votesController.vote_count(req, res, next).then(function() {
+                postMock.verify();
+                expect(notiSave.calledOnce).to.equal(true);
+                done();
+            });
+        });
+
+        it('does nothing when post has not reached vote count for hot', function(done) {
+            post = new Post({
+                _id: id2,
+                voteCount: 1,
+                hot: false
+            });
+
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(post);
+
+            votesController.vote_count(req, res, next).then(function() {
+                postMock.verify();
+                expect(notiSave.called).to.equal(false);
+                expect(next.called).to.equal(false);
+                done();
+            });
+        });
+
+        it('calls next(err) when doc.save() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
                 }
             }
 
-            promiseAll.returnsPromise().rejects(err);
+            post = new Post({
+                _id: id2,
+                voteCount: 3,
+                hot: false
+            });
+
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(post);
+
+            notiSave.returnsPromise().rejects(err);
+
+            votesController.vote_count(req, res, next).then(function() {
+                postMock.verify();
+                expect(notiSave.called).to.equal(true);
+                expect(next.withArgs(err).called).to.equal(true);
+                done();
+            });
+        });
+
+        it('calls next(err) when Post.findById() rejects', function(done) {
+            var err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            }
+
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .rejects(err);
 
             // Call middleware function.
-            votesController.push_and_save_vote(req, res, next).then(function() {
-                expect(promiseAll.called).to.equal(true);
+            votesController.vote_count(req, res, next).then(function() {
+                postMock.verify();
                 expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
     });
 
+/*
     describe('check_vote_count middleware', function() {
         var id1, id2, id3, id4, id5, hotPost, freshPost,
             notification, save, next, reqWithHotPost,
@@ -424,11 +498,12 @@ describe('Votes controller', function() {
             });
         });
     });
+*/
 
-    describe('delete_vote', function() {
+    describe('delete_vote_user', function() {
         var reqWithUser, reqWithoutUser, res,
             id1, id2, id3, id4, id5,
-            next, vote, remove, voteMock;
+            next, userMock, user, save;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -438,13 +513,9 @@ describe('Votes controller', function() {
             id4 = mongoose.Types.ObjectId();
             id5 = mongoose.Types.ObjectId();
 
-            remove = sandbox.stub(Vote.prototype, 'remove');
 
-            vote = new Vote({
-                _id: id3,
-                postId: id2,
-                userId: id1
-            });
+
+            user = new User();
 
             reqWithUser = mockHttp.createRequest({
                 method: 'DELETE',
@@ -453,9 +524,7 @@ describe('Votes controller', function() {
                     _id: id1.toString()
                 },
                 body: {
-                    _id: id3.toString(),
-                    postId: id2.toString(),
-                    userId: id1.toString()
+                    postId: id2.toString()
                 }
             });
 
@@ -463,17 +532,17 @@ describe('Votes controller', function() {
                 method: 'DELETE',
                 url: '/votes',
                 body: {
-                    _id: 'cccccccccccccccccccccccc',
-                    postId: 'bbbbbbbbbbbbbbbbbbbbbbbb',
-                    userId: 'aaaaaaaaaaaaaaaaaaaaaaaa'
+                    postId: id2.toString()
                 }
             });
 
-            voteMock = sandbox.mock(Vote);
-
-            next = sandbox.spy();
-
             res = mockHttp.createResponse();
+
+            userMock = sandbox.mock(User);
+            next     = sandbox.spy();
+            save     = sandbox.stub(User.prototype, 'save');
+
+
         });
 
         afterEach(function() {
@@ -481,11 +550,11 @@ describe('Votes controller', function() {
             reqWithoutUser = {};
             reqWithUser = {};
             res = {};
-            vote = {};
+            user = {};
         });
 
         it('responds with 401 status if user is not authenticated', function() {
-            votesController.delete_vote(reqWithoutUser, res);
+            votesController.delete_vote_user(reqWithoutUser, res, next);
 
             var data = JSON.parse(res._getData());
 
@@ -493,88 +562,92 @@ describe('Votes controller', function() {
             expect(data.message).to.equal('Please authenticate.');
         });
 
+        it('responds with 403 status when postId is not among user.votePosts', function(done) {
+            user = new User({
+                _id: id1,
+                votedPosts: [id5, id4, id3]
+            });
+
+            userMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(user);
+
+            votesController.delete_vote_user(reqWithUser, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                userMock.verify();
+                expect(res.statusCode).to.equal(403);
+                expect(data.message).to.exist;
+                expect(save.called).to.equal(false);
+                expect(next.called).to.equal(false);
+                done();
+            });
+        });
+
 
         it('makes the appropriate calls when everything goes right', function(done) {
-            voteMock
+            user = new User({
+                _id: id1,
+                votedPosts: [id5, id4, id3, id2]
+            });
+
+            userMock
                 .expects('findById')
                 .chain('exec')
-                .resolves(vote);
+                .resolves(user);
 
-            remove.returnsPromise().resolves();
+            save.returnsPromise().resolves();
 
-            votesController.delete_vote(reqWithUser, res, next).then(function() {
-                var data = JSON.parse(res._getData());
-
-                voteMock.verify();
-                expect(remove.called).to.equal(true);
-                expect(res.statusCode).to.equal(200);
-                expect(data.message).to.exist;
-                expect(data.message).to.equal('Vote successfully deleted.');
-                expect(data.voteId).to.exist;
+            votesController.delete_vote_user(reqWithUser, res, next).then(function() {
+                userMock.verify();
+                expect(save.called).to.equal(true);
+                expect(next.called).to.equal(true);
                 done();
             });
         });
 
-        it('responds with 403 status when req.user._id does not match vote owner', function(done) {
-            var vote1 = new Vote({
-                _id: id4,
-                postId: id2,
-                userId: id5.toString()
-            });
-
-            voteMock
-                .expects('findById')
-                .chain('exec')
-                .resolves(vote1);
-
-            votesController.delete_vote(reqWithUser, res, next).then(function() {
-                var data = JSON.parse(res._getData());
-
-                voteMock.verify();
-                expect(remove.called).to.equal(false);
-                expect(res.statusCode).to.equal(403);
-                expect(data.message).to.equal('You are not authorized to perform this operation.');
-                done();
-            });
-        });
-
-        it('calls next(err) when Vote.findById rejects', function(done) {
+        it('calls next(err) when User.findById rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
                 }
             };
 
-            voteMock
+            userMock
                 .expects('findById')
                 .chain('exec')
                 .rejects(err);
 
-            votesController.delete_vote(reqWithUser, res, next).then(function() {
-                voteMock.verify();
+            votesController.delete_vote_user(reqWithUser, res, next).then(function() {
+                userMock.verify();
                 expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
         });
 
-        it('responds with err when vote.remove rejects', function(done) {
+        it('calls next(err) when user.save() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
                 }
             };
 
-            voteMock
+            user = new User({
+                _id: id1,
+                votedPosts: [id5, id4, id3, id2]
+            });
+
+            userMock
                 .expects('findById')
                 .chain('exec')
-                .resolves(vote);
+                .resolves(user);
 
-            remove.returnsPromise().rejects(err);
+            save.returnsPromise().rejects(err);
 
-            votesController.delete_vote(reqWithUser, res, next).then(function() {
-
-                voteMock.verify();
-                expect(remove.called).to.equal(true);
+            votesController.delete_vote_user(reqWithUser, res, next).then(function() {
+                userMock.verify();
+                expect(save.called).to.equal(true);
                 expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
@@ -591,6 +664,98 @@ describe('Votes controller', function() {
             });
 
             expect(votesController.delete_vote(badReq, res, next)).to.throw(Error);
+        });
+    });
+
+    describe('delete_vote_post', function() {
+        var req, res, next, postMock, save,
+            post, id1, id2, id3;
+        var sandbox = sinon.sandbox.create();
+
+        beforeEach(function() {
+            id1 = mongoose.Types.ObjectId();
+            id1 = mongoose.Types.ObjectId();
+            id1 = mongoose.Types.ObjectId();
+
+            req = mockHttp.createRequest();
+            res = mockHttp.createResponse();
+
+            post = new Post({
+                _id: id1,
+                voteCount: 5
+            });
+
+            postMock = sandbox.mock(Post);
+            save     = sandbox.stub(Post.prototype, 'save');
+            next     = sandbox.spy();
+        });
+
+        afterEach(function() {
+            sandbox.restore();
+            req = {};
+            res = {};
+            post = {};
+        });
+
+        it('makes the appropriate calls when everything goes right', function(done) {
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(post);
+
+            save.returnsPromise().resolves();
+
+            votesController.delete_vote_post(req, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                postMock.verify();
+                expect(save.called).to.equal(true);
+                expect(res.statusCode).to.equal(200);
+                expect(data.message).to.exist;
+                done();
+            });
+        });
+
+        it('calls next(err) when Post.findById() rejects', function(done) {
+            var err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            };
+
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .rejects(err);
+
+            votesController.delete_vote_post(req, res, next).then(function() {
+                postMock.verify();
+                expect(save.called).to.equal(false);
+                expect(next.withArgs(err).called).to.equal(true);
+                done();
+            });
+        });
+
+        it('calls next(err) when post.save() rejects', function(done) {
+            var err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            };
+
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(post);
+
+            save.returnsPromise().rejects(err);
+
+            votesController.delete_vote_post(req, res, next).then(function() {
+                postMock.verify();
+                expect(save.called).to.equal(true);
+                expect(next.withArgs(err).called).to.equal(true);
+                done();
+            });
         });
     });
 });

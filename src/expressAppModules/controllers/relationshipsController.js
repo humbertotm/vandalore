@@ -4,7 +4,8 @@ var Relationship = require('../models/relationshipModel'),
 
 // Require mongoose and set bluebird to handle its promises.
 var mongoose     = require('mongoose');
-mongoose.Promise = require('bluebird');
+var Promise      = require('bluebird');
+mongoose.Promise = Promise;
 
 // Creates and responds with new relationship.
 module.exports.create_relationship = function(req, res, next) {
@@ -38,6 +39,8 @@ module.exports.create_relationship = function(req, res, next) {
     }
 }
 
+/*
+// Will be substituted by post('save') hook.
 // Pushes and saves newly created relationship into
 // follower.following and followed.followers.
 module.exports.push_and_save_rel = function(req, res, next) {
@@ -71,6 +74,7 @@ module.exports.push_and_save_rel = function(req, res, next) {
         next(err);
     });
 }
+*/
 
 // Deletes an existing relationship.
 module.exports.delete_relationship = function(req, res, next) {

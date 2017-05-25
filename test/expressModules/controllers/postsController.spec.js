@@ -136,6 +136,7 @@ describe('Posts controller', function() {
         });
     });
 
+/*
     describe('push_and_save_post middleware', function() {
         var id1, id2, id3, userMock, categoryMock,
             consoleLog, promiseAll, post, user, category,
@@ -230,6 +231,7 @@ describe('Posts controller', function() {
             });
         });
     });
+*/
 
     describe('delete_post', function() {
         var reqWithUser, reqWithoutUser, res,

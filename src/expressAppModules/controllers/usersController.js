@@ -1,6 +1,11 @@
 // Require User model.
 var User         = require('../models/usersModel');
 
+// Require mongoose and set bluebird to handle its promises.
+var mongoose     = require('mongoose');
+var Promise      = require('bluebird');
+mongoose.Promise = Promise;
+
 // Require hashPassword util function.
 var hashPassword = require('../utils').hashPassword;
 

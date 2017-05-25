@@ -5,7 +5,8 @@ var Post         = require('../models/postModel'),
 
 // Require mongoose and set bluebird to handle its promises.
 var mongoose     = require('mongoose');
-mongoose.Promise = require('bluebird');
+var Promise      = require('bluebird');
+mongoose.Promise = Promise;
 
 // Creates and responds with a new post.
 module.exports.create_post = function(req, res, next) {
@@ -41,7 +42,9 @@ module.exports.create_post = function(req, res, next) {
     }
 }
 
+/*
 // Pushes and saves new post in corresponding user and category ref.
+// Will be substituted by post('save') hook.
 module.exports.push_and_save_post = function(req, res, next) {
     var post = req.post;
     var userId = post.userId; // ObjectId
@@ -69,6 +72,7 @@ module.exports.push_and_save_post = function(req, res, next) {
         next(err);
     });
 }
+*/
 
 // Deletes a post.
 module.exports.delete_post = function(req, res, next) {
