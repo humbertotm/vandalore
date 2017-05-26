@@ -7,6 +7,9 @@ var mongoose     = require('mongoose');
 var Promise      = require('bluebird');
 mongoose.Promise = Promise;
 
+// Consider refactoring the logic of establishing relationships.
+// Might as well do it without the need to create a collection for them.
+
 // Creates and responds with new relationship.
 module.exports.create_relationship = function(req, res, next) {
     if(req.user) {

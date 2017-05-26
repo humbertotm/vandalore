@@ -64,7 +64,7 @@ module.exports.create_vote = function(req, res, next) {
         ];
 
         function addVote(owner) {
-            if(owner.constructor.modelName == 'Post') {
+            if(owner.constructor.modelName === 'Post') {
                 owner.voteCount ++;
                 owner.hookEnabled = false;
                 return owner.save();
@@ -216,6 +216,7 @@ module.exports.delete_vote_user = function(req, res, next) {
 
         return User.findById(authUserId).exec().then(function(user) {
             // Remember, postId is a String
+            // Might be a good place to insert a search algorithm?
             if(user.votedPosts.indexOf(postId) === -1) {
                 return res.status(403).json({
                     message: 'You are not authorized to perform this operation.'

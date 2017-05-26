@@ -1,6 +1,12 @@
 var mongoose     = require('mongoose');
-mongoose.Promise = require('bluebird');
+var Promise      = require('bluebird');
+mongoose.Promise = Promise;
 var Schema       = mongoose.Schema;
+
+var User         = require('./userModel'),
+    Post         = require('./postModel');
+
+var commentMid   = require('./docMiddleware/commentMid');
 
 var commentSchema = new Schema({
     userId: {
@@ -26,46 +32,9 @@ var commentSchema = new Schema({
     timestamps: true
 });
 
-commentSchema.post('save', function(doc, next) {
-    /*
-    var promises = [
-        Post.findById(doc.postId).exec(),
-        User.findById(doc.userId).exec()
-    ];
+commentSchema.post('save', commentMid.postSave);
 
-    function pushAndSave(owner) {
-        owner.comments.push(doc);
-        owner.hookEnabled = false;
-        return owner.save();
-    }
-
-    return Promise.map(promises, pushAndSave).then(function() {
-        next();
-    }).catch(function(err) {
-        next(err);
-    });
-    */
-});
-
-commentSchema.post('remove', function(doc, next) {
-    /*
-    var promises = [
-        Post.findById(doc.postId).exec(),
-        User.findById(doc.userId).exec()
-    ];
-
-    function removeFromOwner(owner) {
-        // Remove from owner.comments();
-        return owner.save();
-    }
-
-    return Promise.map(promises, removeFromOwner).then(function() {
-        next();
-    }).catch(function(err) {
-        next(err);
-    });
-    */
-});
+commentSchema.post('remove', commentMid.postRemove);
 
 // Concurrency edge cases for hooks.
 

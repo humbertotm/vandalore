@@ -18,12 +18,13 @@ module.exports.get_notifications = function(req, res, next) {
             throw new Error('Bad params.');
         }
 
+        // Maybe a cursor for streaming would work better?
         return User.findById(userId).populate({
             path: 'notifications',
             options: { limit: 5 }
         }).exec().then(function(user) {
             if(user === null) {
-                res.status(404).json({
+                return res.status(404).json({
                     message: 'User not found.'
                 });
             }

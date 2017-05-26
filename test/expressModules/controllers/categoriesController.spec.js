@@ -98,17 +98,16 @@ describe('Categories controller', function() {
             });
         });
 
-        it.skip('throws if categoryId is not the correct type', function() {
+        it('throws if categoryId is not the correct type', function() {
             var badReq = mockHttp.createRequest({
                 params: {
                     categoryId: 'someId'
                 }
             });
 
-            // Not working.
-            // It is throwing before assertion is made.
-            // Somehow it failling proves its working fine.
-            expect(catController.get_posts(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                catController.get_posts(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 
@@ -220,8 +219,7 @@ describe('Categories controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
-            // Same issue as above.
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 params: {
                     maxId: 'cccc',
@@ -229,7 +227,9 @@ describe('Categories controller', function() {
                 }
             });
 
-            expect(catController.get_more_posts(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                catController.get_more_posts(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 });

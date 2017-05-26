@@ -2,6 +2,20 @@ var chai = require('chai');
 var Post = require('../../../src/expressAppModules/models/postModel');
 var expect = chai.expect;
 
+var Category          = require('../../../src/expressAppModules/models/categoryModel'),
+    User             = require('../../../src/expressAppModules/models/userModel');
+
+var postMid       = require('../../../src/expressAppModules/models/docMiddleware/postMid');
+
+var Promise          = require('bluebird'),
+    mongoose         = require('mongoose');
+mongoose.Promise     = Promise;
+
+var sinon            = require('sinon'),
+    sinonStubPromise = require('sinon-stub-promise');
+
+require('sinon-mongoose');
+sinonStubPromise(sinon);
 describe('Post model', function() {
     var id;
     var p;
@@ -99,6 +113,136 @@ describe('Post model', function() {
         p.validate(function(err) {
             expect(err).to.equal(null);
             done();
+        });
+    });
+});
+
+describe('Post middleware', function() {
+    describe('postSave middleware', function() {
+        var doc, next, id1, id2, id3, catMock, userMock, promiseMap;
+        var sandbox = sinon.sandbox.create();
+
+        beforeEach(function() {
+            next       = sandbox.spy();
+            userMock   = sandbox.mock(User);
+            catMock   = sandbox.mock(Category);
+            promiseMap = sandbox.stub(Promise, 'map');
+
+            doc = new Post({
+                _id: id1,
+                userId: id2,
+                category: 2,
+                title: 'Some title.',
+                description: 'Some shit.',
+                imageUrl: 'some-url'
+            });
+        });
+
+        afterEach(function() {
+            sandbox.restore();
+            doc = {};
+        });
+
+        it('makes the appropriate calls when everything goes right', function(done) {
+            /*
+            userMock
+                .expects('findById')
+                .chain('exec')
+                .resolves();
+
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves();
+            */
+
+            promiseMap.returnsPromise().resolves();
+
+            postMid.postSave(doc, next).then(function() {
+                // userMock.verify();
+                // catMock.verify();
+                expect(promiseMap.called).to.equal(true);
+                expect(next.called).to.equal(true);
+                done();
+            });
+        });
+
+        it('calls next(err) when Promise.map() rejects', function() {
+            var err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            };
+            promiseMap.returnsPromise().rejects(err);
+
+            postMid.postSave(doc, next).then(function() {
+                expect(next.withArgs(err).called).to.equal(true);
+                done();
+            });
+        });
+    });
+
+    describe('postRemove middleware', function() {
+        var doc, next, id1, id2, id3, catMock, userMock, promiseMap;
+        var sandbox = sinon.sandbox.create();
+
+        beforeEach(function() {
+            next       = sandbox.spy();
+            userMock   = sandbox.mock(User);
+            catMock   = sandbox.mock(Category);
+            promiseMap = sandbox.stub(Promise, 'map');
+
+            doc = new Post({
+                _id: id1,
+                userId: id2,
+                category: 2,
+                title: 'Some title.',
+                description: 'Some shit.',
+                imageUrl: 'some-url'
+            });
+        });
+
+        afterEach(function() {
+            sandbox.restore();
+            doc = {};
+        });
+
+        it('makes the appropriate calls when everything goes right', function(done) {
+            /*
+            userMock
+                .expects('findById')
+                .chain('exec')
+                .resolves();
+
+            postMock
+                .expects('findById')
+                .chain('exec')
+                .resolves();
+            */
+
+            promiseMap.returnsPromise().resolves();
+
+            postMid.postRemove(doc, next).then(function() {
+                // userMock.verify();
+                // postMock.verify();
+                expect(promiseMap.called).to.equal(true);
+                expect(next.called).to.equal(true);
+                done();
+            });
+        });
+
+        it('calls next(err) when Promise.map() rejects', function() {
+            var err = {
+                errors: {
+                    message: 'Some error message.'
+                }
+            };
+            promiseMap.returnsPromise().rejects(err);
+
+            postMid.postRemove(doc, next).then(function() {
+                expect(next.withArgs(err).called).to.equal(true);
+                done();
+            });
         });
     });
 });
