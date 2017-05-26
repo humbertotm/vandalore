@@ -137,14 +137,16 @@ describe('Notifactions controller', function() {
             });
         });
 
-        it.skip('throws if bad parameters are passed', function() {
+        it('throws if bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
                     _id: 'aaaa'
                 }
             });
 
-            expect(notiController.get_notifications(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                notiController.get_notifications(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 
@@ -311,7 +313,7 @@ describe('Notifactions controller', function() {
             });
         });
 
-        it.skip('throws if bad parameters are passed', function() {
+        it('throws if bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
                     _id: 'aaaa'
@@ -321,7 +323,9 @@ describe('Notifactions controller', function() {
                 }
             });
 
-            expect(notiController.get_notifications(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                notiController.get_notifications(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 });

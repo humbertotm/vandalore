@@ -28,8 +28,6 @@ module.exports.create_post = function(req, res, next) {
 
         return post.save().then(function(createdPost) {
             res.json(createdPost);
-            req.post = createdPost;
-            next();
         })
         .catch(function(err) {
             next(err);
@@ -88,7 +86,7 @@ module.exports.delete_post = function(req, res, next) {
 
         return Post.findById(postId).exec().then(function(post) {
             if(post === null) {
-                res.status(404).json({
+                return res.status(404).json({
                     message: 'Post not found.'
                 });
             }
@@ -128,12 +126,13 @@ module.exports.get_post = function(req, res, next) {
         throw new Error('Bad parameters.');
     }
 
+    // Maybe a cursor for streaming would work better?
     return Post.findById(postId).populate({
         path: 'comments',
         options: { limit: 20 }
     }).exec().then(function(post) {
         if(post === null) {
-            res.status(404).json({
+            return res.status(404).json({
                 message: 'Post not found.'
             });
         }
@@ -155,12 +154,13 @@ module.exports.get_post_comments = function(req, res, next) {
         throw new Error('postId provided is not an instance of ObjectId.');
     }
 
+    // Maybe a cursos for streaming would work better here?
     return Post.findById(postId).populate({
         path: 'comments',
         options: { limit: 20 }
     }).exec().then(function(post) {
         if(post === null) {
-            res.status(404).json({
+            return res.status(404).json({
                 message: 'Post not found.'
             })
         }

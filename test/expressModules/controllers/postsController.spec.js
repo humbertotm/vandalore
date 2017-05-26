@@ -104,7 +104,6 @@ describe('Posts controller', function() {
                 expect(save.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
                 expect(data._id).to.exist;
-                expect(next.calledOnce).to.equal(true);
                 done();
             });
         });
@@ -125,14 +124,16 @@ describe('Posts controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
                     _id: 'aaaa'
                 }
             });
 
-            expect(postsController.create_post(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                postsController.create_post(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 
@@ -405,7 +406,7 @@ describe('Posts controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
                     _id: 'aaaa'
@@ -415,7 +416,9 @@ describe('Posts controller', function() {
                 }
             });
 
-            expect(postsController.delete_post(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                postsController.delete_post(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 
@@ -493,14 +496,16 @@ describe('Posts controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 params: {
                     postId: 'aaaa'
                 }
             });
 
-            expect(postsController.get_post(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                postsController.get_post(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 
@@ -580,14 +585,16 @@ describe('Posts controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 params: {
                     postId: 'aaaa'
                 }
             });
 
-            expect(postsController.get_post(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                postsController.get_post(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 });

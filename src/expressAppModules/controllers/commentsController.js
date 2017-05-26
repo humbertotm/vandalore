@@ -28,8 +28,6 @@ module.exports.create_comment = function(req, res, next) {
 
         return comment.save().then(function(createdComment) {
             res.json(createdComment);
-            req.comment = createdComment;
-            next();
         })
         .catch(function(err) {
             next(err);
@@ -90,7 +88,7 @@ module.exports.delete_comment = function(req, res, next) {
 
         return Comment.findById(commentId).exec().then(function(comment) {
             if(comment === null) {
-                res.status(404).json({
+                return res.status(404).json({
                     message: 'Comment not found.'
                 });
             }

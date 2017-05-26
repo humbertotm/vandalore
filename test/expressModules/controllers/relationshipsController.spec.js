@@ -112,7 +112,7 @@ describe('Relationships controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
                     _id: 'aaaa'
@@ -122,7 +122,9 @@ describe('Relationships controller', function() {
                 }
             });
 
-            expect(relController.create_relationship(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                relController.create_relationship(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 
@@ -342,7 +344,7 @@ describe('Relationships controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
                     _id: 'aaaa'
@@ -352,7 +354,9 @@ describe('Relationships controller', function() {
                 }
             });
 
-            expect(relController.delete_relationship(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                relController.delete_relationship(badReq, res, next)
+            }).to.throw(Error);
         });
     });
 });

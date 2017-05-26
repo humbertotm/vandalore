@@ -94,7 +94,6 @@ describe('Comments controller', function() {
                 expect(res.statusCode).to.equal(200);
                 expect(data.content).to.exist;
                 expect(save.called).to.equal(true);
-                expect(next.calledOnce).to.equal(true);
                 done();
             });
         });
@@ -115,7 +114,7 @@ describe('Comments controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
                     _id: 'aaaaaaaaaaaaaaa'
@@ -125,7 +124,9 @@ describe('Comments controller', function() {
                 }
             });
 
-            expect(commentsController.create_comment(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                commentsController.create_comment(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 
@@ -433,7 +434,7 @@ describe('Comments controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
                     _id: 'aaaaaaaaaaaaaaaaaaaaaaaa'
@@ -443,7 +444,9 @@ describe('Comments controller', function() {
                 }
             });
 
-            expect(commentsController.delete_comment(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                commentsController.delete_comment(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 });

@@ -24,7 +24,7 @@ sinonStubPromise(sinon);
 var mongoose         = require('mongoose');
 Promise              = require('bluebird');
 
-describe.only('Votes controller', function() {
+describe('Votes controller', function() {
     describe('create_vote', function() {
         var reqWithUser, reqWithoutUser, res, user,
             post, id1, id2, id3, err, next, promiseMap,
@@ -140,7 +140,7 @@ describe.only('Votes controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 method: 'POST',
                 url: '/votes',
@@ -153,7 +153,9 @@ describe.only('Votes controller', function() {
                 }
             });
 
-            expect(votesController.create_vote(badReq, res, next).to.throw(Error));
+            expect(function() {
+                votesController.create_vote(badReq, res, next);
+            }).to.throw(Error);
         });
     });
 
@@ -653,7 +655,7 @@ describe.only('Votes controller', function() {
             });
         });
 
-        it.skip('throws when bad parameters are passed', function() {
+        it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
                     _id: 'aaaaa'
@@ -663,7 +665,9 @@ describe.only('Votes controller', function() {
                 }
             });
 
-            expect(votesController.delete_vote(badReq, res, next)).to.throw(Error);
+            expect(function() {
+                votesController.delete_vote(badReq, res, next)
+            }).to.throw(Error);
         });
     });
 

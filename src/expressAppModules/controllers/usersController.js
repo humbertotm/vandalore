@@ -11,7 +11,7 @@ var hashPassword = require('../utils').hashPassword;
 
 module.exports.delete_user = function(req, res) {
     if(req.user) {
-        var authUserId = req.user._id;
+        var authUserId = req.user._id; // String
         var userId = req.body._id;
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
@@ -22,12 +22,12 @@ module.exports.delete_user = function(req, res) {
 
         User.findById(userId).exec().then(function(user) {
             if(user === null) {
-                res.status(404).json({
+                return res.status(404).json({
                     message: 'User not found.'
                 });
             }
 
-            if(user._id === authUserId) {
+            if(user._id.toString() === authUserId) {
                 return user.remove().then(function() {
                     res.status(200).json({
                         message: 'User successfully deleted.',
