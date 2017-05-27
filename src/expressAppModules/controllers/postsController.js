@@ -73,6 +73,12 @@ module.exports.push_and_save_post = function(req, res, next) {
 */
 
 // Deletes a post.
+// Refactor this to use Query#remove instead of Model#remove to avoid
+// docMiddleware being triggered (asuming this is posible).
+// Manage post deletion from user and categories in a following
+// route middleware.
+// Doc middleware for postRemove will be exclusively left for post deletions
+// triggered by owner.deletion.
 module.exports.delete_post = function(req, res, next) {
     if(req.user) {
         var authUserId = req.user._id; // String

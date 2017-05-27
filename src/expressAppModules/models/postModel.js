@@ -59,11 +59,19 @@ var postSchema = new Schema({
         required: false
     },
 
-    hookEnabled: {
+    postSavehookEnabled: {
         type: Boolean,
         default: true,
         required: false
-    }
+    },
+
+    postRemoveHookEnabled: {
+        type: Boolean,
+        default: true,
+        required: false
+    },
+
+
 },
 {
     timestamps: true

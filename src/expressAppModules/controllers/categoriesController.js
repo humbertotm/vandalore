@@ -47,6 +47,7 @@ module.exports.get_more_posts = function(req, res, next) {
             });
         }
 
+        // Fix this promise. Won't handle errors.
         // Keep an eye here.
         // Not sure if maxId as a String will work here.
         var toSkip = cat.posts.indexOf(maxId);

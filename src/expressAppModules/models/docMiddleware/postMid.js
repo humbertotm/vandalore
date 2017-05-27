@@ -15,7 +15,7 @@ module.exports.postSave = function(doc, next) {
 
         function pushAndSave(owner) {
             owner.posts.push(doc);
-            owner.hookEnabled = false;
+            owner.postSaveHookEnabled = false;
             return owner.save();
         }
 
@@ -30,6 +30,8 @@ module.exports.postSave = function(doc, next) {
 }
 
 module.exports.postRemove = function(doc, next) {
+    // Comments will be orphaned. Just make sure no bugs precipitate from this
+    // (besides the space employed in db).
     var promises;
     if(doc.hot) {
         promises = [
