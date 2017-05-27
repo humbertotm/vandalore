@@ -15,11 +15,11 @@ module.exports.postSave = function(doc, next) {
     function pushIntoFollowingOrFollowers(user) {
         if(user._id === doc.followerId) {
             user.following.push(doc.followedId);
-            user.hookEnabled = false;
+            user.postSaveHookEnabled = false;
             return user.save();
         } else {
             user.followers.push(followerId);
-            user.hookEnabled = false;
+            user.postSaveHookEnabled = false;
             return user.save();
         }
     }

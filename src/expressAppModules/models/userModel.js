@@ -5,6 +5,8 @@ var Schema       = mongoose.Schema;
 
 var bcrypt       = require('bcryptjs');
 
+var userMid      = require('./docMiddleware/userMid');
+
 var userSchema = new Schema({
     local: {
         email: {
@@ -73,12 +75,22 @@ var userSchema = new Schema({
         required: true
     },
 
+    // Has confirmed its email address
     activated: {
         type: Boolean,
         default: false,
         required: true
     },
 
+/*
+    // Has not deactivated its account.
+    active: {
+        type: Boolean,
+        default: true,
+        required: true
+    },
+
+*/
     admin : {
         type: Boolean,
         default: false,
@@ -154,6 +166,10 @@ var userSchema = new Schema({
 {
     timestamps: true
 });
+
+// method to hash password
+
+userSchema.post('remove', userMid.postRemove);
 
 module.exports = mongoose.model('User', userSchema);
 
