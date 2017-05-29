@@ -20,9 +20,3 @@ module.exports.postRemove = function(doc, next) {
     });
 }
 
-
-
-// How do we avoid the loop that comes into being when user.postRemove calls
-// post.remove and triggers post.postRemove, that in turn will trigger user.postRemove,
-// and so on.
-

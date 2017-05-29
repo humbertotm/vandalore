@@ -27,9 +27,12 @@ module.exports.create_post = function(req, res, next) {
         post.userId = userId;
 
         return post.save().then(function(createdPost) {
-            res.json(createdPost);
-        })
-        .catch(function(err) {
+            res.json({
+                entities: {
+                    posts: createdPost
+                }
+            });
+        }).catch(function(err) {
             next(err);
         });
     } else {
@@ -98,11 +101,16 @@ module.exports.delete_post = function(req, res, next) {
             }
 
             if(post.userId.toString() === authUserId) {
+                // post.remove() will handle removing from fresh, category,
+                // and Hot (if hot). Remove from user in following route middleware.
+                var userId = post.user;
+                req.userId = userId;
                 return post.remove().then(function() {
                     res.json({
                         message: 'Post successfully deleted.',
                         postId: postId
                     });
+                    next();
                 });
             } else {
                 // If authenticated user does not match owner of post.
@@ -110,8 +118,7 @@ module.exports.delete_post = function(req, res, next) {
                     message: 'You are not authorized to perform this operation.'
                 });
             }
-        })
-        .catch(function(err) {
+        }).catch(function(err) {
             next(err);
         });
     } else {
@@ -120,6 +127,30 @@ module.exports.delete_post = function(req, res, next) {
             message: 'Please authenticate.'
         });
     }
+}
+
+// This complements post.remove middleware.
+module.exports.delete_post_user = function(req, res, next) {
+    var userId = req.userId;  // ObjectId
+    var postId = req.body._id; // String
+
+    return User.findById(userId).then(function(user) {
+        if(user === null) {
+            return;
+        }
+
+        // var index = user.posts.indexOf(mongoose.Types.ObjectId(postId));
+        var index = user.posts.indexOf(postId);
+        if(index === -1) {
+            return;
+        }
+
+        user.posts.splice(index, 1);
+        user.postSaveHookEnabled = false;
+        return user.save();
+    }).catch(function(err) {
+        next(err);
+    });
 }
 
 // Gets a post.
@@ -143,9 +174,13 @@ module.exports.get_post = function(req, res, next) {
             });
         }
 
-        res.json(post);
-    })
-    .catch(function(err) {
+        res.json({
+            entities: {
+                posts: post,
+                comments: post.comments
+            }
+        });
+    }).catch(function(err) {
         next(err);
     });
 }
@@ -171,9 +206,12 @@ module.exports.get_post_comments = function(req, res, next) {
             })
         }
 
-        res.json(post.comments);
-    })
-    .catch(function(err) {
+        res.json({
+            entities: {
+                comments: post.comments
+            }
+        });
+    }).catch(function(err) {
         next(err);
     });
 }

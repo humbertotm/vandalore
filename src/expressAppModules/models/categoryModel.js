@@ -15,13 +15,14 @@ var categorySchema = new Schema({
 
     posts: [{
         type: Schema.Types.ObjectId,
-        ref: 'Post'
+        ref: 'Post',
+        required: true,
+        default: []
     }],
 
     hookEnabled: {
         type: Boolean,
-        default: true,
-        required: false
+        default: true
     }
 });
 

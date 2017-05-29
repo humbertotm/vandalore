@@ -12,15 +12,15 @@ var hashPassword = require('../utils').hashPassword;
 module.exports.delete_user = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id; // String
-        var userId = req.body._id;
+        var userId = req.body._id;  // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(userId))) {
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(userId)) {
             throw new Error('authUserId and/or userId provided is not an instance of ObjectId.');
         }
 
-        User.findById(userId).exec().then(function(user) {
+        return User.findById(userId).exec().then(function(user) {
             if(user === null) {
                 return res.status(404).json({
                     message: 'User not found.'
@@ -40,8 +40,7 @@ module.exports.delete_user = function(req, res) {
             res.status(403).json({
                 message: 'You are not authorized to perform this operation.'
             });
-        })
-        .catch(function(err) {
+        }).catch(function(err) {
             next(err);
         });
     }
@@ -59,18 +58,18 @@ module.exports.update_user_profile = function(req, res) {
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(userId))) {
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(userId)) {
             throw new Error('authUserId and/or userId provided is not an instance of ObjectId.');
         }
 
-        User.findById(userId).exec().then(function(user) {
+        return User.findById(userId).exec().then(function(user) {
             if(user === null) {
                 res.status(404).json({
                     message: 'User not found.'
                 });
             }
 
-            if(user._id === authUserId) {
+            if(user._id.toString() === authUserId) {
                 user.username === req.body.username || user.username;
                 user.profilePicUrl === req.file.location || user.profilePicUrl;
                 user.bio === req.body.bio || user.bio;
@@ -87,8 +86,7 @@ module.exports.update_user_profile = function(req, res) {
                     message: 'You are not authorized to perform this operation.'
                 });
             }
-        })
-        .catch(function(err) {
+        }).catch(function(err) {
             next(err);
         });
     } else {
@@ -101,23 +99,23 @@ module.exports.update_user_profile = function(req, res) {
 
 module.exports.update_user_local_email = function(req, res) {
     if(req.user) {
-        var authUserId = req.user._id;
-        var userId = req.body._id;
+        var authUserId = req.user._id;  // String
+        var userId = req.body._id;  // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
 
-        if(!(checkForHexRegExp.test(authUserId) && checkForHexRegExp.test(userId))) {
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(userId)) {
             throw new Error('authUserId and/or userId provided is not an instance of ObjectId.');
         }
 
-        User.findById(userId).exec().then(function(user) {
+        return User.findById(userId).exec().then(function(user) {
             if(user === null) {
                 res.status(404).json({
                     message: 'User not found.'
                 });
             }
 
-            if(user._id === authUserId) {
+            if(user._id.toString() === authUserId) {
                 if(user.local) {
                     user.local.email = req.body.email || user.local.email;
                     return user.save().then(function(updatedUser) {
@@ -138,8 +136,7 @@ module.exports.update_user_local_email = function(req, res) {
                     message: 'You are not authorized to perform this operation.'
                 });
             }
-        })
-        .catch(function(err) {
+        }).catch(function(err) {
             next(err);
         });
     } else {
@@ -162,35 +159,25 @@ module.exports.update_user_password = function(req, res) {
             throw new Error('authUserId and/or userId provided is not an instance of ObjectId.');
         }
 
-        User.findById(userId).exec().then(function(user) {
-            if(user._id === authUserId) {
-                if(user.local) {
-                    if(req.body.password && req.body.passwordConfirmation) {
-                        if(req.body.password === req.body.passwordConfirmation) {
-                            user.password === hashPassword(req.body.password, /* cb */);
-                            user.save().then(function(updatedUser) {
-                                res.status(200).json({
-                                    message: 'Password successfully updated.'
-                                });
-                            });
-                        }
-                        // Handle password and passwordConfirmation not matching.
-                    }
-                    // Handle password or passwordConfirmation missing.
+        return User.findById(userId).exec().then(function(user) {
+            if(user._id.toString() === authUserId) {
+                if(user.local && (req.body.password === req.body.passwordConfirmation)) {
+                    user.password = hashPassword(password);
+                    return user.save().then(function(updatedUser) {
+                        // Choose fiedls.
+                        res.json(updatedUser);
+                    });
                 }
-
                 // If user has no local credentials
                 res.status(403).json({
-                    message: 'You have not set any local credentials.'
+                    message: 'You have not set any local credentials or password/password confirmation mismatch.'
                 });
             }
-
             // If authenticated user does not match owner of user doc.
             res.status(403).json({
                 message: 'You are not authorized to perform this operation.'
             });
-        })
-        .catch(function(err) {
+        }).catch(function(err) {
             next(err);
         })
     }
@@ -210,51 +197,18 @@ module.exports.get_user = function(req, res) {
         throw new Error('userId provided is not an instance of ObjectId.');
     }
 
-    User.findById(userId).exec().then(function(user) {
+    return User.findById(userId).exec().then(function(user) {
         if(user === null) {
-            res.status(404).json({
+            return res.status(404).json({
                 message: 'User not found.'
             });
         }
 
+        // Determine which fields will be sent.
         res.json(user);
-    })
-    .catch(function(err) {
+    }).catch(function(err) {
         next(err);
     });
-}
-
-module.exports.get_user_votes = function(req, res) {
-    if(req.user) {
-        var authUserId = req.user._id;
-
-        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
-
-        if(!checkForHexRegExp.test(authUserId)) {
-            throw new Error('authUserId provided is not an instance of ObjectId.');
-        }
-
-        User.findById(authUserId).populate({
-            path: 'votes'
-            // options: { limit: 100 }
-        }).exec().then(function(user) {
-            if(user === null) {
-                res.status(404).json({
-                    message: 'User not found.'
-                });
-            }
-
-            res.json(user.votes);
-        })
-        .catch(function(err) {
-            next(err);
-        });
-    } else {
-        // If no authenticated user
-        res.status(401).json({
-            message: 'Please authenticate.'
-        });
-    }
 }
 
 module.exports.get_user_posts = function(req, res) {
@@ -266,28 +220,43 @@ module.exports.get_user_posts = function(req, res) {
         throw new Error('userId provided is not an instance of ObjectId.');
     }
 
-    User.findById(userId).populate({
+    // Maybe a stream would work well?
+    return User.findById(userId).populate({
         path: 'posts',
-        options: { limit: 100 }
+        options: { limit: 25, sort: -1 }
     }).exec().then(function(user) {
         if(user === null) {
-            res.status(404).json({
+            return res.status(404).json({
                 message: 'User not found.'
             });
         }
 
         res.json(user.posts);
-    })
-    .catch(function(err) {
+    }).catch(function(err) {
         next(err);
     });
 }
 
-module.exports.get_user_feed_posts = function(req, res) {
-    /*
-        ***
-            This is a more complex piece of code.
-            Will get back to it later.
-        ***
-    */
+module.exports.get_user_feed_posts = function(req, res, next) {
+    var authUserId = req.user._id; // String
+    return User.findById(authUserId).exec().then(function(user) {
+        if(user === null) {
+            return res.status(404).json({
+                message: 'User not found.'
+            });
+        }
+
+        // Just make sure that this promise's rejection will be caugh
+        // by catch statement.
+        // Think about streaming this response.
+        return Post.find({ 'user': { $in: user.following }}).exec().then(function(posts) {
+            res.json({
+                entities: {
+                    posts: posts
+                }
+            });
+        });
+    }).catch(function(err) {
+        next(err);
+    });
 }

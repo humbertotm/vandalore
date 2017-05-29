@@ -83,8 +83,7 @@ module.exports.create_vote = function(req, res, next) {
                 message: 'Vote successfully created.'
             });
             next();
-        })
-        .catch(function(err) {
+        }).catch(function(err) {
             next(err);
         });
     } else {
@@ -102,6 +101,7 @@ module.exports.vote_count = function(req, res, next) {
         if(post.hot) {
             return;
           // watch out for asynchronicity here.
+          // It most certainly will, as votesForHot will have to access DB.
         } else if(!post.hot && (post.voteCount > votesForHot())) {
             var noti = new Notification({
                 userId: post.userId,
@@ -215,21 +215,24 @@ module.exports.delete_vote_user = function(req, res, next) {
         }
 
         return User.findById(authUserId).exec().then(function(user) {
-            // Remember, postId is a String
+            // Remember, postId is a String. In such case:
+            // var index = user.votedPosts.indexOf(mongoose.Types.ObjectId(postId));
             // Might be a good place to insert a search algorithm?
-            if(user.votedPosts.indexOf(postId) === -1) {
+            var index = user.votePosts.indexOf(postId);
+
+            if(index === -1) {
                 return res.status(403).json({
                     message: 'You are not authorized to perform this operation.'
                 });
             }
 
             // Remove postId from user.votedPosts
-            user.enableHook = false;
+            user.votedPosts.splice(index, 1);
+            user.postSaveHookEnabled = false;
             return user.save().then(function() {
                 next();
             });
-        })
-        .catch(function(err) {
+        }).catch(function(err) {
             next(err);
         });
     } else {
@@ -245,14 +248,13 @@ module.exports.delete_vote_post = function(req, res, next) {
 
     return Post.findById(postId).exec().then(function(post) {
         post.voteCount --;
-        post.enableHook = false;
+        post.postSaveHookEnabled = false;
         return post.save().then(function() {
             res.json({
                 message: 'Vote successfully deleted.'
             });
         });
-    })
-    .catch(function(err) {
+    }).catch(function(err) {
         next(err);
     });
 }

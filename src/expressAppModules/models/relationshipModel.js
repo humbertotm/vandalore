@@ -1,3 +1,6 @@
+/*
+Will decomission this model as it will no longer be needed.
+
 var mongoose     = require('mongoose');
 mongoose.Promise = require('bluebird');
 var Schema       = mongoose.Schema;
@@ -31,3 +34,4 @@ relationshipSchema.post('remove', relMid.postRemove);
 
 // Export model.
 module.exports = mongoose.model('Relationship', relationshipSchema);
+*/
