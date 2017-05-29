@@ -36,7 +36,6 @@ module.exports.postRemove = function(doc, next) {
     if(doc.hot) {
         promises = [
             // Less queries?
-            User.findById(doc.userId).exec(),
             Category.findById(doc.category).exec(),
             Category.findById(2).exec(),
             Category.findById(1).exec()
@@ -44,7 +43,6 @@ module.exports.postRemove = function(doc, next) {
     }
 
     promises = [
-        User.findById(doc.userId).exec(),
         Category.findById(doc.category).exec(),
         Category.findById(2).exec()
     ];

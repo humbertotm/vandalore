@@ -5,7 +5,7 @@ var Schema       = mongoose.Schema;
 var postMid      = require('./docMiddleware/postMid');
 
 var postSchema = new Schema({
-    userId: {
+    user: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true,
@@ -40,6 +40,8 @@ var postSchema = new Schema({
         default: []
     }],
 
+    // commentCount: this.comments.length;
+
     voteCount: {
         type: Number,
         default: 0
@@ -59,7 +61,7 @@ var postSchema = new Schema({
         required: false
     },
 
-    postSavehookEnabled: {
+    postSaveHookEnabled: {
         type: Boolean,
         default: true,
         required: false

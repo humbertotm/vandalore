@@ -27,9 +27,12 @@ module.exports.create_comment = function(req, res, next) {
         comment.content = content;
 
         return comment.save().then(function(createdComment) {
-            res.json(createdComment);
-        })
-        .catch(function(err) {
+            res.json({
+                entities: {
+                    comments: createdComment
+                }
+            });
+        }).catch(function(err) {
             next(err);
         });
     } else {
@@ -106,8 +109,7 @@ module.exports.delete_comment = function(req, res, next) {
                     message: 'You are not authorized to perform this operation.'
                 });
             }
-        })
-        .catch(function(err) {
+        }).catch(function(err) {
             next(err);
         });
     } else {
