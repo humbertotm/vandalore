@@ -19,17 +19,25 @@ module.exports.create_post = function(req, res, next) {
             throw new Error('Bad parameters.');
         }
 
-        var post = new Post();
-        post.title = req.body.title;
-        post.description = req.body.description;
-        post.imageUrl = req.file.location;
-        post.category = req.body.category;
-        post.userId = userId;
+        return User.findById(userId).exec().then(function(user) {
+            if(user === null) {
+                return res.status(404).json({
+                    message: 'User not found.'
+                });
+            }
 
-        return post.save().then(function(createdPost) {
+            var post = new Post();
+            post.title = req.body.title;
+            post.description = req.body.description;
+            post.imageUrl = req.file.location;
+            post.category = req.body.category;
+            post.userId = user._id;
+
+            return post.save();
+        }).then(function(post) {
             res.json({
                 entities: {
-                    posts: createdPost
+                    posts: post
                 }
             });
         }).catch(function(err) {
@@ -43,46 +51,8 @@ module.exports.create_post = function(req, res, next) {
     }
 }
 
-/*
-// Pushes and saves new post in corresponding user and category ref.
-// Will be substituted by post('save') hook.
-module.exports.push_and_save_post = function(req, res, next) {
-    var post = req.post;
-    var userId = post.userId; // ObjectId
-    var categoryId = post.category; // Number
-
-    var promises = [
-        // What if any of these return null? Will the Promise reject?
-        User.findById(userId).exec(),
-        Category.findById(categoryId).exec()
-    ];
-
-    var promisedDocs = Promise.all(promises);
-
-    function pushAndSave(doc) {
-        doc.posts.push(post);
-        return doc.save();
-    }
-
-    return promisedDocs.then(function(docs) {
-        docs.map(pushAndSave);
-    })
-    .catch(function(err) {
-        // Send this to error handling middleware.
-        err.logToConsole = true;
-        next(err);
-    });
-}
-*/
-
 // Deletes a post.
-// Refactor this to use Query#remove instead of Model#remove to avoid
-// docMiddleware being triggered (asuming this is posible).
-// Manage post deletion from user and categories in a following
-// route middleware.
-// Doc middleware for postRemove will be exclusively left for post deletions
-// triggered by owner.deletion.
-module.exports.delete_post = function(req, res, next) {
+module.exports.delete_post_user = function(req, res, next) {
     if(req.user) {
         var authUserId = req.user._id; // String
         var postId = req.body._id; // String
@@ -93,31 +63,26 @@ module.exports.delete_post = function(req, res, next) {
             throw new Error('Bad parameters.');
         }
 
-        return Post.findById(postId).exec().then(function(post) {
-            if(post === null) {
+        // First, we remove it from user.posts.
+        return User.findById(authUserId).exec().then(function(user) {
+            if(user === null) {
                 return res.status(404).json({
-                    message: 'Post not found.'
+                    message: 'User not found.'
                 });
             }
 
-            if(post.userId.toString() === authUserId) {
-                // post.remove() will handle removing from fresh, category,
-                // and Hot (if hot). Remove from user in following route middleware.
-                var userId = post.user;
-                req.userId = userId;
-                return post.remove().then(function() {
-                    res.json({
-                        message: 'Post successfully deleted.',
-                        postId: postId
-                    });
-                    next();
-                });
-            } else {
-                // If authenticated user does not match owner of post.
-                res.status(403).json({
+            // var index = user.posts.indexOf(mongoose.Types.ObjectId(postId));
+            var index = user.posts.indexOf(postId);
+            if(index === -1) {
+                return res.status(403).json({
                     message: 'You are not authorized to perform this operation.'
                 });
             }
+
+            user.posts.splice(index, 1);
+            user.save().then(function() {
+                next();
+            });
         }).catch(function(err) {
             next(err);
         });
@@ -130,24 +95,22 @@ module.exports.delete_post = function(req, res, next) {
 }
 
 // This complements post.remove middleware.
-module.exports.delete_post_user = function(req, res, next) {
-    var userId = req.userId;  // ObjectId
+module.exports.delete_post = function(req, res, next) {
     var postId = req.body._id; // String
 
-    return User.findById(userId).then(function(user) {
-        if(user === null) {
-            return;
+    return Post.findById(postId).then(function(post) {
+        if(post === null) {
+            return res.status(404).json({
+                message: 'Post not found.'
+            });
         }
 
-        // var index = user.posts.indexOf(mongoose.Types.ObjectId(postId));
-        var index = user.posts.indexOf(postId);
-        if(index === -1) {
-            return;
-        }
-
-        user.posts.splice(index, 1);
-        user.postSaveHookEnabled = false;
-        return user.save();
+        return post.remove().then(function() {
+            res.json({
+                message: 'Post successfully deleted.',
+                postId: postId
+            });
+        });
     }).catch(function(err) {
         next(err);
     });
@@ -167,6 +130,8 @@ module.exports.get_post = function(req, res, next) {
     return Post.findById(postId).populate({
         path: 'comments',
         options: { limit: 20 }
+    }).populate({
+        path: 'user'
     }).exec().then(function(post) {
         if(post === null) {
             return res.status(404).json({
@@ -198,17 +163,29 @@ module.exports.get_post_comments = function(req, res, next) {
     // Maybe a cursos for streaming would work better here?
     return Post.findById(postId).populate({
         path: 'comments',
-        options: { limit: 20 }
+        options: { limit: 20 },
+        populate: {
+            path: 'user',
+            select: 'username miniProfilePic _id'
+        }
     }).exec().then(function(post) {
         if(post === null) {
             return res.status(404).json({
                 message: 'Post not found.'
-            })
+            });
         }
+
+        var comments = post.comments;
+        var postComms = [];
+        comments.forEach(function(comm) {
+            if(comm.user !== null) {
+                postComms.push(comm);
+            }
+        });
 
         res.json({
             entities: {
-                comments: post.comments
+                comments: postComms
             }
         });
     }).catch(function(err) {

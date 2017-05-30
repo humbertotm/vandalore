@@ -147,7 +147,6 @@ module.exports.update_user_local_email = function(req, res) {
     }
 }
 
-// Still pending.
 module.exports.update_user_password = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
@@ -223,6 +222,9 @@ module.exports.get_user_posts = function(req, res) {
     // Maybe a stream would work well?
     return User.findById(userId).populate({
         path: 'posts',
+        populate: {
+            path: 'user'
+        },
         options: { limit: 25, sort: -1 }
     }).exec().then(function(user) {
         if(user === null) {
@@ -231,7 +233,19 @@ module.exports.get_user_posts = function(req, res) {
             });
         }
 
-        res.json(user.posts);
+        var userPosts = [];
+        var posts = user.posts;
+        posts.forEach(function(post) {
+            if(post.user !== null) {
+                userPosts.push(post);
+            }
+        });
+
+        res.json({
+            entities: {
+                posts: posts
+            }
+        });
     }).catch(function(err) {
         next(err);
     });
@@ -246,13 +260,22 @@ module.exports.get_user_feed_posts = function(req, res, next) {
             });
         }
 
-        // Just make sure that this promise's rejection will be caugh
+        // Just make sure that this promise's rejection will be caught
         // by catch statement.
         // Think about streaming this response.
-        return Post.find({ 'user': { $in: user.following }}).exec().then(function(posts) {
+        return Post.find({ 'user': { $in: user.following }}).populate({
+            path: 'user'
+        }).exec().then(function(posts) {
+            var feedPosts = [];
+            posts.forEach(function(post) {
+                if(post.user !== null) {
+                    feedPosts.push(post);
+                }
+            });
+
             res.json({
                 entities: {
-                    posts: posts
+                    posts: feedPosts
                 }
             });
         });

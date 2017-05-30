@@ -21,15 +21,38 @@ module.exports.create_comment = function(req, res, next) {
             throw new Error('Bad parameters.');
         }
 
-        var comment = new Comment();
-        comment.postId = postId;
-        comment.userId = userId;
-        comment.content = content;
+        var promises = [
+            User.findById(userId).exec(),
+            Post.findById(postId).exec()
+        ];
 
-        return comment.save().then(function(createdComment) {
+        return Promise.all(promises).then(function(docs) {
+            var comment = new Comment();
+            for(var i = 0; i < docs.length; i++) {
+                if(docs[i] === null) {
+                    return res.status(404).json({
+                        message: 'User/Post not found.'
+                    });
+                    break;
+                }
+            }
+
+            docs.forEach(function(doc) {
+                if(doc.constructor.modelName === 'User') {
+                    comment.userId = doc._id;
+                }
+
+                if(doc.constructor.modelName === 'Post') {
+                    comment.postId = doc._id;
+                }
+            });
+
+            comment.content = content;
+            return comment.save();
+        }).then(function(comment) {
             res.json({
                 entities: {
-                    comments: createdComment
+                    comments: comment
                 }
             });
         }).catch(function(err) {
@@ -42,40 +65,6 @@ module.exports.create_comment = function(req, res, next) {
         });
     }
 }
-
-// Push and save newly created comment into user and post doc refs.
-// Will be substituted by post('save') hook.
-/*
-module.exports.push_and_save_comment = function(req, res, next) {
-    var comment = req.comment;
-    var userId = comment.userId; // ObjectId
-    var postId = comment.postId; // ObjectId
-
-    var promises = [
-        // What if any of these return null? Will the Promise reject?
-        User.findById(userId).exec(),
-        Post.findById(postId).exec()
-    ];
-
-    var promisedDocs = Promise.all(promises);
-
-    function pushAndSave(doc) {
-        // What if one of thses promises rejects? Will it be handled by .catch()?
-        // Apparently not. Fix this.
-        // Brute force way of fixing this: split it into two middleware functions.
-        doc.comments.push(comment);
-        return doc.save();
-    }
-
-    return promisedDocs.then(function(docs) {
-        docs.map(pushAndSave);
-    })
-    .catch(function(err) {
-        err.logToConsole = true;
-        next(err);
-    });
-}
-*/
 
 // Deletes a comment.
 module.exports.delete_comment = function(req, res, next) {

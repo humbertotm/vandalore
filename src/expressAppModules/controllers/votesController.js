@@ -11,41 +11,6 @@ mongoose.Promise = Promise;
 
 var votesForHot  = require('../utils').votesForHot;
 
-/*
-// Decomissioned middleware. Substituted by the function below.
-// Creates a new vote and sends it in response.
-module.exports.create_vote = function(req, res, next) {
-    if(req.user) {
-        var userId = req.user._id; // String
-        var postId = req.body.postId; // String
-
-        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
-
-        if(!checkForHexRegExp.test(userId) || !checkForHexRegExp.test(postId)) {
-            throw new Error('Bad parameters.');
-        }
-
-        var vote = new Vote();
-        vote.userId = userId;
-        vote.postId = postId;
-
-        return vote.save().then(function(createdVote) {
-            res.json(createdVote);
-            req.vote = createdVote;
-            next();
-        })
-        .catch(function(err) {
-            next(err);
-        });
-    } else {
-        // If no authenticated user
-        res.status(401).json({
-            message: 'Please authenticate.'
-        });
-    }
-}
-*/
-
 module.exports.create_vote = function(req, res, next) {
     if(req.user) {
         var userId = req.user._id; // String
@@ -58,21 +23,23 @@ module.exports.create_vote = function(req, res, next) {
         }
 
         var promises = [
-            // What if any of these resolves to null?
             Post.findById(postId).exec(),
             User.findById(userId).exec()
         ];
 
         function addVote(owner) {
+            if(owner === null) {
+                throw new Error('Cannot operate on an undefined post/user.');
+            }
+
             if(owner.constructor.modelName === 'Post') {
                 owner.voteCount ++;
-                owner.hookEnabled = false;
+                owner.postSaveHookEnabled = false;
                 return owner.save();
             }
 
             // If user
             owner.votedPosts.push(postId);
-            owner.hookEnabled = false;
             return owner.save();
         }
 
@@ -95,6 +62,7 @@ module.exports.create_vote = function(req, res, next) {
 }
 
 module.exports.vote_count = function(req, res, next) {
+    // No need to handle nulls as you cannot get here without an existing post's id.
     var postId = req.body.postId;
 
     return Post.findById(postId).then(function(post) {
@@ -117,92 +85,7 @@ module.exports.vote_count = function(req, res, next) {
     });
 }
 
-/*
-// Pushes newly created vote into refs in user and post docs.
-module.exports.push_and_save_vote = function(req, res, next) {
-    var vote = req.vote;
-    var userId = vote.userId; // ObjectId
-    var postId = vote.postId; // ObjectId
-
-    var promises = [
-        // What if any of these return null? Will the Promise reject?
-        User.findById(userId).exec(),
-        Post.findById(postId).exec()
-    ];
-
-    var promisedDocs = Promise.all(promises);
-
-    function pushAndSave(doc) {
-        doc.votes.push(vote);
-        return doc.save();
-    }
-
-    function passPostToNext(doc) {
-        if(doc.constructor.modelName === 'Post') {
-            req.post = doc;
-            next();
-        } else {
-            return;
-        }
-    }
-
-    return promisedDocs.then(function(docs) {
-        docs.map(pushAndSave);
-        docs.map(passPostToNext);
-    })
-    .catch(function(err) {
-        err.logToConsole = true;
-        next(err);
-    });
-}
-
-// Checks the vote count for post to verify if there is
-// a need to create a notification.
-module.exports.check_vote_count = function(req, res, next) {
-    var post = req.post;
-    var voteCount = post.votes.length;
-
-    if(voteCount > votesForHot()) {
-        var notification = new Notification();
-        notification.userId = post.userId;
-        notification.postId = post._id;
-        notification.message = 'Your post has reached the Hot Page!';
-
-        return notification.save().then(function(notification) {
-            req.notification = notification;
-            next();
-        })
-        .catch(function(err) {
-            err.logToConsole = true;
-            next(err);
-        });
-    } else {
-        return;
-    }
-}
-
-// Pushes and saves newly created notification to corresponding user.
-module.exports.push_and_save_notification = function(req, res, next) {
-    var notification = req.notification;
-    var userId = notification.userId; // ObjectId
-
-    return User.findById(userId).exec().then(function(user) {
-        if(user === null) {
-            // What do we do here? This is middleware.
-        }
-
-        user.notifications.push(notification);
-        return user.save();
-    })
-    .catch(function(err) {
-        err.logToConsole = true;
-        next(err);
-    });
-}
-*/
-
 // Deletes a vote.
-// Refactor this shit.
 module.exports.delete_vote_user = function(req, res, next) {
     if(req.user) {
         var authUserId = req.user._id; // String
@@ -215,7 +98,11 @@ module.exports.delete_vote_user = function(req, res, next) {
         }
 
         return User.findById(authUserId).exec().then(function(user) {
-            // Remember, postId is a String. In such case:
+            if(user === null) {
+                return res.status(404).json({
+                    message: 'User not found.'
+                });
+            }
             // var index = user.votedPosts.indexOf(mongoose.Types.ObjectId(postId));
             // Might be a good place to insert a search algorithm?
             var index = user.votePosts.indexOf(postId);
@@ -228,7 +115,6 @@ module.exports.delete_vote_user = function(req, res, next) {
 
             // Remove postId from user.votedPosts
             user.votedPosts.splice(index, 1);
-            user.postSaveHookEnabled = false;
             return user.save().then(function() {
                 next();
             });

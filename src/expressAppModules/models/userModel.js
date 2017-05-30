@@ -157,7 +157,7 @@ var userSchema = new Schema({
         default: []
     }],
 
-    hookEnabled: {
+    postRemoveHookEnabled: {
         type: Boolean,
         default: true,
         required: false
