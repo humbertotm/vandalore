@@ -1,8 +1,4 @@
-var Category     = require('../categoryModel'),
-    User         = require('../userModel'),
-    Post         = require('../postModel'),
-    Relationship = require('../relationshipModel'),
-    Comment      = require('../commentModel');
+var Post         = require('../postModel');
 
 var mongoose     = require('mongoose');
 var Promise      = require('bluebird');

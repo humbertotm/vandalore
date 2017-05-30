@@ -64,13 +64,13 @@ var postSchema = new Schema({
     postSaveHookEnabled: {
         type: Boolean,
         default: true,
-        required: false
+        required: true
     },
 
     postRemoveHookEnabled: {
         type: Boolean,
         default: true,
-        required: false
+        required: true
     },
 
 

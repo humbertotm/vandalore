@@ -5,11 +5,13 @@ var mongoose     = require('mongoose');
 var Promise      = require('bluebird');
 mongoose.Promise = Promise;
 
+var freshCatId   = 2,
+    hotCatId     = 1;
+
 module.exports.postSave = function(doc, next) {
-    if(doc.hookEnabled) {
+    if(doc.postSaveHookEnabled) {
         var promises = [
-            Category.findById(doc.category).exec(),
-            Category.findById(2).exec(),
+            Category.find({ '_id': { $in: [doc.category, freshCatId] } }).exec(),
             User.findById(doc.userId).exec()
         ];
 
@@ -35,16 +37,12 @@ module.exports.postRemove = function(doc, next) {
     var promises;
     if(doc.hot) {
         promises = [
-            // Less queries?
-            Category.findById(doc.category).exec(),
-            Category.findById(2).exec(),
-            Category.findById(1).exec()
+            Category.find({ '_id': { $in: [doc.category, freshCatId, hotCatId] } }).exec()
         ];
     }
 
     promises = [
-        Category.findById(doc.category).exec(),
-        Category.findById(2).exec()
+        Category.find({ '_id': { $in: [doc.category, freshCatId] } }).exec()
     ];
 
     function removeFromOwner(owner) {

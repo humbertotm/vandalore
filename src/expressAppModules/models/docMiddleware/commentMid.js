@@ -12,8 +12,17 @@ module.exports.postSave = function(doc, next) {
     ];
 
     function pushAndSave(owner) {
+        if(owner === null) {
+            throw new Error('Cannot operate on an undefined post/user.');
+        }
+
+        if(owner.constructor.modelName === 'Post') {
+            owner.comments.push(doc);
+            owner.postSaveHookEnabled = false;
+            return owner.save();
+        }
+
         owner.comments.push(doc);
-        owner.hookEnabled = false;
         return owner.save();
     }
 
@@ -31,6 +40,10 @@ module.exports.postRemove = function(doc, next) {
     ];
 
     function removeFromOwner(owner) {
+        if(owner === null) {
+            throw new Error('Cannot operate on an undefined post/user.');
+        }
+
         // Remove from owner.comments();
         var index = owner.comments.indexOf(doc._id);
         owner.comments.splice(index, 1);
