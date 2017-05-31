@@ -1,5 +1,5 @@
 // Require User model.
-var User         = require('../models/usersModel');
+var User         = require('../models/userModel');
 
 // Require mongoose and set bluebird to handle its promises.
 var mongoose     = require('mongoose');

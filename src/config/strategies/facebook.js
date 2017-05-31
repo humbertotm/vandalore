@@ -38,7 +38,7 @@ function(req, accessToken, refreshToken, profile, done) {
 
                             // Create a token and return it along with user.
                             var payload = {id: user._id};
-                            var token = jwt.sign(payload, secret, algorithm);
+                            var token = jwt.sign(payload, 'secret');
                             return done(null, user, {
                                 token: token,
                                 message: 'Facebook account successfully connected.'
@@ -68,7 +68,7 @@ function(req, accessToken, refreshToken, profile, done) {
                             return done(err);
 
                         var payload = {id: newUser._id};
-                        var token = jwt.sign(payload, secret, Algorithm);
+                        var token = jwt.sign(payload, 'secret');
                         return done(null, newUser, token);
                     });
                 }

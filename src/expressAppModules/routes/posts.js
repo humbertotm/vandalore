@@ -9,7 +9,7 @@ var aws = require('aws-sdk');
 var multer = require('multer');
 var multerS3 = require('multer-s3');
 
-aws.config.loadFromPath('~/AWS/aws-config.json');
+aws.config.loadFromPath('./config/AWS/aws-config.json');
 
 var s3 = new aws.S3({ params: {
         Bucket: 'vandalore'
@@ -32,13 +32,19 @@ var upload = multer({
 
 var postRoutes = require('express').Router();
 
-postRoutes.use(expressJWT());
+postRoutes.use(expressJWT({
+    secret: 'secret'
+}));
 
 // Create a new post.
-postRoutes.post('/', upload.single('image'), posts_controller.create_post);
+postRoutes.post('/', expressJWT({
+    secret: 'secret'
+}), upload.single('image'), posts_controller.create_post);
 
 // Delete an existing post.
-postRoutes.delete('/', posts_controller.delete_post);
+postRoutes.delete('/', expressJWT({
+    secret: 'secret'
+}), posts_controller.delete_post_user, posts_controller.delete_post);
 
 // Get a post.
 // Do not need authenticated user.

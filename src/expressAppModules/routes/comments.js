@@ -6,7 +6,9 @@ var expressJWT = require('express-jwt');
 
 var commentRoutes = require('express').Router();
 
-commentRoutes.use(expressJWT());
+commentRoutes.use(expressJWT({
+    secret: 'secret'
+}));
 
 // Creates a new comment.
 commentRoutes.post('/', comments_controller.create_comment);

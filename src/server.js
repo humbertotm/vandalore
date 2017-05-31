@@ -1,20 +1,20 @@
-var express = require('express');
-var app = express();
-var mongoose = require('mongoose');
-var morgan = require('morgan');
-var bodyParser = require('body-parser');
+var express       = require('express'),
+    app           = express(),
+    mongoose      = require('mongoose'),
+    morgan        = require('morgan'),
+    bodyParser    = require('body-parser');
 
 // DB config
-var configDB = require('./config/database');
+var configDB      = require('./config/database');
 
 // Import routes
-var auth = require('./expressAppModules/routes/auth');
-var categories = require('./expressAppModules/routes/categories');
-var users = require('./expressAppModules/routes/users');
-var votes = require('./expressAppModules/routes/votes');
-var posts = require('./expressAppModules/routes/posts');
-var comments = require('./expressAppModules/routes/comments');
-var relationships = require('./expressAppModules/routes/relationships');
+var auth          = require('./expressAppModules/routes/auth'),
+    categories    = require('./expressAppModules/routes/categories'),
+    users         = require('./expressAppModules/routes/users'),
+    votes         = require('./expressAppModules/routes/votes'),
+    posts         = require('./expressAppModules/routes/posts'),
+    comments      = require('./expressAppModules/routes/comments'),
+    relationships = require('./expressAppModules/routes/relationships');
 
 var port = 3000;
 
@@ -24,17 +24,13 @@ mongoose.connect(configDB.url);
 // Double check the middleware used.
 app.use(morgan('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.text());
-app.use(bodyParser.json({ type: 'application/json'}));
+app.use(bodyParser.json({ type: 'application/json' }));
 // Error handling middleware
 // Move it to a separate file and test it.
 app.use(function(err, req, res, next) {
-    if(err.logToConsole) {
-        console.log(err.message);
-        return;
-    }
-
+    // Think about what else could be added here.
     res.status(err.status || 500);
     res.json(err.message);
 });
@@ -48,6 +44,7 @@ app.use('/posts', posts);
 app.use('/comments', comments);
 app.use('/relationships', relationships);
 
+// Or we could push this operation to another server.
 // This one will serve the app.
 // All server-side rendering will happen here.
 app.get('/', function(req, res) {

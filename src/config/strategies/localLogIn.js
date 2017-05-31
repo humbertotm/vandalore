@@ -40,7 +40,7 @@ passport.use('local-login', new LocalStrategy(localOpts, function(req, email, pa
                 return done(null, false, { message: 'Incorrect password.' });
             } else {
                 var payload = {id: user._id};
-                var token = jwt.sign(payload, getPrivateKeyFromSomewhere, Algorithm);
+                var token = jwt.sign(payload, 'secret');
                 return done(null, user, token);
             }
         })

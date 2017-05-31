@@ -17,7 +17,7 @@ module.exports.get_posts = function(req, res, next) {
         path: 'posts',
         select: '-comments -postSaveHookEnabled -postRemoveHookEnabled',
         // I want them to be in reverse order in which thew were pushed.
-        options: { limit: 20. sort: -1 },
+        options: { limit: 20, sort: -1 },
         populate: {
             path: 'user',
             select: '_id username miniProfilePicUrl activated -admin'
