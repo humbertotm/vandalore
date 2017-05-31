@@ -1,3 +1,4 @@
+var path = require('path');
 // Controllers
 var users_controller = require('../controllers/usersController');
 var notifications_controller = require('../controllers/notificationsController');
@@ -10,17 +11,19 @@ var aws = require('aws-sdk');
 var multer = require('multer');
 var multerS3 = require('multer-s3');
 
-aws.config.loadFromPath('~/AWS/aws-config.json');
+// Not finding file.
+// var pathToFile = path.join(__dirname, './config/AWS/aws-config.json');
+aws.config.loadFromPath('./config/AWS/aws-config.json');
 
 var s3 = new aws.S3({ params: {
-        Bucket: 'vandalore'
+        Bucket: 'vandalore-test'
     }
 });
 
 var upload = multer({
     storage: multerS3({
         s3: s3,
-        bucket: 'flor-app',
+        bucket: 'vandalore-test',
         contentType: multerS3.AUTO_CONTENT_TYPE,
         metadata: function(req, file, cb) {
             cb(null, {fieldName: file.fieldname});
@@ -34,34 +37,50 @@ var upload = multer({
 var userRoutes = require('express').Router();
 
 // Set up middleware for these routes.
-userRoutes.use(expressJWT());
+userRoutes.use(expressJWT({
+    secret: 'secret'
+}));
 
 // Deletes an existing user.
-userRoutes.delete('/', users_controller.delete_user_local);
+userRoutes.delete('/', expressJWT({
+    secret: 'secret'
+}), users_controller.delete_user);
 
 // Updates an existing user profile.
-userRoutes.put('/', upload.single('profile-pic'), users_controller.update_user_profile);
+userRoutes.put('/profile', expressJWT({
+    secret: 'secret'
+}), upload.single('profile-pic'), users_controller.update_user_profile);
+
+// Updates a user's local email.
+userRoutes.put('/email', expressJWT({
+    secret: 'secret'
+}), users_controller.update_user_local_email);
+
+// Updates a user's password.
+userRoutes.put('/password', expressJWT({
+    secret: 'secret'
+}), users_controller.update_user_password);
 
 // Get a user.
 userRoutes.get('/:userId', users_controller.get_user);
-
-// *** Get each of a user's votes (with some restrictions).
-userRoutes.get('/:userId/votes', users_controller.get_user_votes);
 
 // Get a user's posts.
 // Do not need auth to access route.
 userRoutes.get('/:userId/posts', users_controller.get_user_posts);
 
-// *** Get each of a user's active relationships.
-userRoutes.get('/:userId/active_relationships', users_controller.get_user_active_relationships);
-
 // *** Get a user's feed posts.
-userRoutes.get('/:userId/feed', users_controller.get_user_feed_posts);
+userRoutes.get('/:userId/feed', expressJWT({
+    secret: 'secret'
+}), users_controller.get_user_feed_posts);
 
 // Gets latest notifications for a user.
-userRoutes.get('/:userId/notifications', notifications_controller.get_notifications);
+userRoutes.get('/:userId/notifications', expressJWT({
+    secret: 'secret'
+}), notifications_controller.get_notifications);
 
 // Updates a notification's status from unread to read.
-notifRoutes.put('/:userId/notifications', notifications_controller.mark_notification_as_read);
+userRoutes.put('/:userId/notifications', expressJWT({
+    secret: 'secret'
+}), notifications_controller.mark_notification_as_read);
 
 module.exports = userRoutes;

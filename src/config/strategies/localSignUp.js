@@ -35,7 +35,10 @@ passport.use('local-signup', new LocalStrategy(localOpts, function(req, email, p
 
                 // If user with provided email already exists.
                 if(user) {
-                    return done(null, false, { message: 'Email already in use.' });
+                    return done(null, false, {
+                        message: 'Email already in use.',
+                        status: 409
+                    });
                 } else {
                     // Create new user.
                     var newUser = new User();
@@ -70,7 +73,10 @@ passport.use('local-signup', new LocalStrategy(localOpts, function(req, email, p
 
                 // If a user with such email is found, return message: 'Email taken.'
                 if(user) {
-                    return done(null, false, { message: 'Email already in use.' });
+                    return done(null, false, {
+                        message: 'Email already in use.',
+                        status: 409
+                    });
                 } else {
                     User.findById(userId, function(err, user) {
                         if(err)
@@ -84,7 +90,7 @@ passport.use('local-signup', new LocalStrategy(localOpts, function(req, email, p
                             if(err)
                                 return done(err);
 
-                            return done(null, user, { message: 'Social credentials successfully connected.' });
+                            return done(null, user, { message: 'Local credentials successfully connected.' });
                         });
                     });
 

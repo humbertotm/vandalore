@@ -36,7 +36,7 @@ passport.use(new GoogleStrategy(googleStrategy, function(req, accessToken, refre
 
                             // Create a token and return it along with user.
                             var payload = {id: user._id};
-                            var token = jwt.sign(payload, secret, algorithm);
+                            var token = jwt.sign(payload, 'secret');
                             return done(null, user, {
                                 token: token,
                                 message: 'Google account successfully connected.'
@@ -66,7 +66,7 @@ passport.use(new GoogleStrategy(googleStrategy, function(req, accessToken, refre
                             return done(err);
 
                         var payload = {id: newUser._id};
-                        var token = jwt.sign(payload, secret, algorithm);
+                        var token = jwt.sign(payload, 'secret');
                         return done(null, newUser, token);
                     });
                 }
