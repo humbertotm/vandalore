@@ -11,8 +11,7 @@ var aws = require('aws-sdk');
 var multer = require('multer');
 var multerS3 = require('multer-s3');
 
-// Not finding file.
-// var pathToFile = path.join(__dirname, './config/AWS/aws-config.json');
+// This path is relative to the working directory, not the path of this file.
 aws.config.loadFromPath('./config/AWS/aws-config.json');
 
 var s3 = new aws.S3({ params: {

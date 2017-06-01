@@ -104,3 +104,22 @@ module.exports.get_more_posts = function(req, res, next) {
         next(err);
     });
 }
+
+module.exports.create_category = function(req, res, next) {
+    var id = req.body._id; // String
+    var catName = req.body.name; // String
+
+    var category = new Category({
+        _id: id,
+        categoryName: catName
+    });
+
+    return category.save().then(function(cat) {
+        res.json({
+            message: 'Category with id ' + cat._id + ' and name ' + cat.categoryName + ' successfully created.'
+        });
+    }).catch(function(err) {
+        next(err);
+    });
+
+}

@@ -18,12 +18,7 @@ var categorySchema = new Schema({
         ref: 'Post',
         required: true,
         default: []
-    }],
-
-    hookEnabled: {
-        type: Boolean,
-        default: true
-    }
+    }]
 });
 
 // Export model.
