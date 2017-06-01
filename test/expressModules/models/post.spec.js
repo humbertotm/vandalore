@@ -16,6 +16,7 @@ var sinon            = require('sinon'),
 
 require('sinon-mongoose');
 sinonStubPromise(sinon);
+
 describe('Post model', function() {
     var id;
     var p;
@@ -29,9 +30,9 @@ describe('Post model', function() {
         p = {};
     });
 
-    it('should be invalid if no userId is present', function(done) {
+    it('should be invalid if no user is present', function(done) {
         p.validate(function(err) {
-            expect(err.errors.userId).to.exist;
+            expect(err.errors.user).to.exist;
             done();
         });
     });
@@ -92,7 +93,7 @@ describe('Post model', function() {
     });
 
     it('should be valid', function(done) {
-        p.userId = id;
+        p.user = id;
         p.title = 'Some title.';
         p.description = 'Some description.';
         p.imageUrl = 'some-url';
@@ -105,7 +106,7 @@ describe('Post model', function() {
     });
 
     it('should be valid, too', function(done) {
-        p.userId = id;
+        p.user = id;
         p.title = 'Some title.';
         p.imageUrl = 'some-url';
         p.category = 1;

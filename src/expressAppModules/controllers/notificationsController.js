@@ -60,24 +60,24 @@ module.exports.mark_notification_as_read = function(req, res, next) {
 
         return Notification.findById(notificationId).exec().then(function(notification) {
             if(notification === null) {
-                res.status(404).json({
+                return res.status(404).json({
                     message: 'Notification not found.'
                 });
             }
 
             if(notification.userId.toString() === authUserId) {
                 notification.read = true;
-                return notification.save().then(function(notif) {
-                    res.json({
-                        notificationId: notif._id
-                    });
-                });
-            } else {
-                // If authenticated user does not match notification owner
-                res.status(403).json({
-                    message: 'You are not authorized to perform this operation.'
-                });
+                return notification.save();
             }
+
+            // If authenticated user does not match notification owner
+            res.status(403).json({
+                message: 'You are not authorized to perform this operation.'
+            });
+        }).then(function(noti) {
+            res.json({
+                notificationId: noti._id
+            });
         }).catch(function(err) {
             next(err);
         });
