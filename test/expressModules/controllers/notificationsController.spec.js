@@ -22,7 +22,7 @@ sinonStubPromise(sinon);
 var mongoose         = require('mongoose');
 mongoose.Promise     = require('bluebird');
 
-describe('Notifactions controller', function() {
+describe.only('Notifactions controller', function() {
     describe('get_notifications', function() {
         var reqWithUser, reqWithoutUser, res,
             id1, id2, id3, id4, id5,
@@ -112,7 +112,8 @@ describe('Notifactions controller', function() {
 
                 userMock.verify();
                 expect(res.statusCode).to.equal(200);
-                expect(data.length).to.equal(2);
+                expect(data.entities).to.exist;
+                expect(data.entities.notifications.length).to.equal(2);
                 done();
             });
         });
