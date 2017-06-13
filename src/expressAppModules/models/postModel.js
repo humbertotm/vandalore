@@ -23,9 +23,15 @@ var postSchema = new Schema({
         maxlength: 1024
     },
 
-    imageUrl: {
-        type: String,
-        required: true
+    image: {
+        fullPicUrl: {
+            type: String,
+            required: true
+        },
+        thumbnail: {
+            type: String,
+            required: true
+        }
     },
 
     category: {
@@ -44,7 +50,8 @@ var postSchema = new Schema({
 
     voteCount: {
         type: Number,
-        default: 0
+        default: 0,
+        required: true
     },
 
     /*
@@ -65,15 +72,7 @@ var postSchema = new Schema({
         type: Boolean,
         default: true,
         required: true
-    },
-
-    postRemoveHookEnabled: {
-        type: Boolean,
-        default: true,
-        required: true
-    },
-
-
+    }
 },
 {
     timestamps: true

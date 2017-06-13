@@ -1,9 +1,12 @@
+/*
+
 var Post = require('../postModel'),
     User = require('../userModel');
 
 var mongoose     = require('mongoose');
 var Promise      = require('bluebird');
 mongoose.Promise = Promise;
+
 
 module.exports.postSave = function(doc, next) {
     var promises = [
@@ -33,6 +36,7 @@ module.exports.postSave = function(doc, next) {
     });
 }
 
+
 module.exports.postRemove = function(doc, next) {
     var promises = [
         Post.findById(doc.postId).exec(),
@@ -56,3 +60,4 @@ module.exports.postRemove = function(doc, next) {
         next(err);
     });
 }
+*/

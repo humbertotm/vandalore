@@ -17,7 +17,6 @@ module.exports.postSave = function(doc, next) {
 
         function pushAndSave(owner) {
             owner.posts.push(doc);
-            owner.postSaveHookEnabled = false;
             return owner.save();
         }
 
@@ -39,15 +38,20 @@ module.exports.postRemove = function(doc, next) {
         promises = [
             Category.find({ '_id': { $in: [doc.category, freshCatId, hotCatId] } }).exec()
         ];
+    } else {
+        promises = [
+            Category.find({ '_id': { $in: [doc.category, freshCatId] } }).exec()
+        ];
     }
-
-    promises = [
-        Category.find({ '_id': { $in: [doc.category, freshCatId] } }).exec()
-    ];
 
     function removeFromOwner(owner) {
         // Eliminate post from owner.posts;
         var index = owner.posts.indexOf(doc._id);
+
+        if(index === -1) {
+            return;
+        }
+
         owner.posts.splice(index, 1);
         return owner.save();
     }

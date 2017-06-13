@@ -11,5 +11,7 @@ module.exports.hashPassword = function(password, cb) {
 }
 
 module.exports.votesForHot = function() {
-    return 2;
+    return new Promise(function(resolve, reject) {
+        resolve();
+    });
 }

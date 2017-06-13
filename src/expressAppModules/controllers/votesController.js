@@ -1,6 +1,5 @@
 // Require neccessary models.
-var Vote         = require('../models/voteModel'),
-    User         = require('../models/userModel'),
+var User         = require('../models/userModel'),
     Post         = require('../models/postModel'),
     Notification = require('../models/notificationModel');
 
@@ -11,7 +10,8 @@ mongoose.Promise = Promise;
 
 var votesForHot  = require('../utils').votesForHot;
 
-module.exports.create_vote = function(req, res, next) {
+// Verify user and post of interest exist in the DB, for both create and delete actions.
+module.exports.verify_docs = function(req, res, next) {
     if(req.user) {
         var userId = req.user._id; // String
         var postId = req.body.postId; // String
@@ -27,28 +27,27 @@ module.exports.create_vote = function(req, res, next) {
             User.findById(userId).exec()
         ];
 
-        function addVote(owner) {
-            if(owner === null) {
-                throw new Error('Cannot operate on an undefined post/user.');
+        return Promise.all(promises).then(function(results) {
+            var nullDoc = false;
+            for(var i = 0; i < results.length; i++) {
+                if(results[i] === null) {
+                    nullDoc = true;
+                    break;
+                }
+
+                if(results[i].constructor.modelName === 'Post') {
+                    req.post = results[i];
+                }
+
+                req.user = results[i];
             }
 
-            if(owner.constructor.modelName === 'Post') {
-                owner.voteCount ++;
-                owner.postSaveHookEnabled = false;
-                return owner.save();
+            if(nullDoc) {
+                return res.status(404).json({
+                    message: 'User and/or Post not found.'
+                });
             }
 
-            // If user
-            owner.votedPosts.push(postId);
-            return owner.save();
-        }
-
-        return Promise.map(promises, addVote).then(function() {
-            // What are the results returned by Promise.map?
-            // How can I set req.post?
-            res.json({
-                message: 'Vote successfully created.'
-            });
             next();
         }).catch(function(err) {
             next(err);
@@ -61,84 +60,83 @@ module.exports.create_vote = function(req, res, next) {
     }
 }
 
-module.exports.vote_count = function(req, res, next) {
-    // No need to handle nulls as you cannot get here without an existing post's id.
-    var postId = req.body.postId;
+// Creates a vote.
+module.exports.create_vote = function(req, res, next) {
+    var post = req.post,
+        user = req.user;
 
-    return Post.findById(postId).then(function(post) {
-        if(post.hot) {
-            return;
-          // watch out for asynchronicity here.
-          // It most certainly will, as votesForHot will have to access DB.
-        } else if(!post.hot && (post.voteCount > votesForHot())) {
+    var index = user.votedPosts.indexOf(post._id);
+    if(index !== -1) {
+        return res.status(309).json({
+            message: 'A vote for this post already exists.'
+        });
+    }
+
+    user.votedPosts.push(post._id);
+    return user.save().then(function() {
+        post.voteCount ++;
+        post.postSaveHookEnabled = false;
+        return post.save();
+    }).then(function() {
+        next();
+    }).catch(function(err) {
+        next(err);
+    });
+}
+
+module.exports.vote_count = function(req, res, next) {
+    var post = req.post;
+
+    if(post.hot) {
+        return res.json({
+            message: 'Vote successfully created.'
+        });
+    }
+
+    return votesForHot().then(function(hotVoteCount) {
+        if(!post.hot && (post.voteCount > hotVoteCount)) {
             var noti = new Notification({
                 userId: post.userId,
                 postId: post._id,
                 message: 'Your post has reached the Hot page!'
             });
-            return noti.save();
-        } else {
-            return;
+            return noti.save().then(function() {
+                res.json({
+                    message: 'Vote successfully created.'
+                });
+            });
         }
+
+        res.json({
+            message: 'Vote successfully created.'
+        });
     }).catch(function(err) {
         next(err);
     });
 }
 
 // Deletes a vote.
-module.exports.delete_vote_user = function(req, res, next) {
-    if(req.user) {
-        var authUserId = req.user._id; // String
-        var postId     = req.body.postId; // String
+module.exports.delete_vote = function(req, res, next) {
+    var user = req.user;
+    var post = req.post;
 
-        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+    // Delete vote from user.
+    var index = user.votedPosts.indexOf(post._id); // ObjectId
 
-        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(postId)) {
-            throw new Error('Bad parameters.');
-        }
-
-        return User.findById(authUserId).exec().then(function(user) {
-            if(user === null) {
-                return res.status(404).json({
-                    message: 'User not found.'
-                });
-            }
-            // var index = user.votedPosts.indexOf(mongoose.Types.ObjectId(postId));
-            // Might be a good place to insert a search algorithm?
-            var index = user.votePosts.indexOf(postId);
-
-            if(index === -1) {
-                return res.status(403).json({
-                    message: 'You are not authorized to perform this operation.'
-                });
-            }
-
-            // Remove postId from user.votedPosts
-            user.votedPosts.splice(index, 1);
-            return user.save().then(function() {
-                next();
-            });
-        }).catch(function(err) {
-            next(err);
-        });
-    } else {
-        // If no authenticated user
-        res.status(401).json({
-            message: 'Please authenticate.'
+    if(index === -1) {
+        return res.status(404).json({
+            message: 'Vote not found.'
         });
     }
-}
 
-module.exports.delete_vote_post = function(req, res, next) {
-    var postId = req.body.postId;
-
-    return Post.findById(postId).exec().then(function(post) {
+    user.votedPosts.splice(index, 1);
+    return user.save().then(function() {
         post.voteCount --;
         post.postSaveHookEnabled = false;
-        return post.save().then(function() {
-            res.json({
-                message: 'Vote successfully deleted.'
-            });
+        return post.save();
+    }).then(function() {
+        res.json({
+            message: 'Vote successfully deleted.'
         });
     }).catch(function(err) {
         next(err);

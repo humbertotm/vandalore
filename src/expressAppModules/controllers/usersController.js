@@ -9,7 +9,7 @@ mongoose.Promise = Promise;
 // Require hashPassword util function.
 var hashPassword = require('../utils').hashPassword;
 
-module.exports.delete_user = function(req, res) {
+module.exports.delete_user = function(req, res, next) {
     if(req.user) {
         var authUserId = req.user._id; // String
         var userId = req.body._id;  // String
@@ -51,6 +51,177 @@ module.exports.delete_user = function(req, res) {
     });
 }
 
+// Verify user exists before updating profile pic.
+module.exports.verify_user = function(req, res, next) {
+    if(req.user) {
+        var authUserId = req.user._id;
+        var userId = req.body._id;
+
+        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
+        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(userId)) {
+            throw new Error('authUserId and/or userId provided is not an instance of ObjectId.');
+        }
+
+        return User.findById(userId).exec().then(function(user) {
+            if(user === null) {
+                return res.status(404).json({
+                    message: 'User not found.'
+                });
+            }
+
+            if(user._id.toString() === authUserId) {
+                req.user = user;
+                return next();
+            } else {
+                res.status(403).json({
+                    message: 'You are not authorized to perform this operation.'
+                });
+            }
+        }).catch(function(err) {
+            next(err);
+        });
+    } else {
+        res.status(401).json({
+            message: 'Please authenticate.'
+        });
+    }
+}
+
+// Do image versioning.
+module.exports.image_versioning = function(req, res, next) {
+    var path = req.file.path;
+
+    var versions = {
+        fullPic: {
+            width: 650
+        },
+        thumbnail: {
+            width: 300
+        }
+    };
+
+    var fullPicPath = '../public/images/' + Date.now().toString() + '-' + 'fullPic.jpg';
+    var thumbnailPath = '../public/images/' + Date.now().toString() + '-' + 'thumbnail.jpg';
+
+    // Run image versioning in parallel.
+    parallel([
+        // Adjust width and maintain proportions.
+        function(done) {
+            gm(path)
+                .resize(versions.fullPic.width)
+                .write(fullPicPath, function(err) {
+                    done(err);
+                });
+        },
+        function(done) {
+            gm(path)
+                .resize(versions.thumbnail.width)
+                .write(thumbnailPath, function(err) {
+                    done(err);
+                });
+        }
+    ], function done(err, results) {
+        if(err) {
+            console.log('Error in image versioning.');
+            return next(err);
+        }
+
+        req.fullPicPath = fullPicPath;
+        req.thumbnailPath = thumbnailPath;
+        next();
+    });
+}
+
+// Store images in S3 Bucket.
+module.exports.store_in_s3 = function(req, res, next) {
+    var fullPic = req.fullPicPath;
+    var thumbnail = req.thumbnailPath;
+
+    function storePic(file, imageSize, done) {
+        fs.readFile(file, function(err, data) {
+            if(err) { return done(err); }
+
+            var base64data = Buffer.from(data, 'binary');
+            var s3 = new aws.S3();
+            var key = Date.now().toString() + '-' + imageSize + '.jpg';
+
+            s3.upload({
+                Bucket: 'vandalore',
+                Key: key,
+                Body: base64data,
+                // Beware: Not all images will be png.
+                ContentType: 'image/png',
+                ACL: 'public-read'
+            }, function(err, data) {
+                if(err) { return done(err); }
+                done(null, data);
+            });
+        });
+    }
+
+    parallel({
+        fullPic: function(done) {
+            var imageSize = 'fullPic';
+            storePic(fullPic, imageSize, done);
+        },
+        thumbnail: function(done) {
+            var imageSize = 'thumbnail';
+            storePic(thumbnail, imageSize, done);
+        }
+    }, function done(err, results) {
+        if(err) { return next(err); }
+
+        // results: { fullPic: {}, thumbnail: {} }
+        req.thumbnailUrl = results.thumbnail.Location;
+        req.fullPicUrl = results.fullPic.Location;
+        next();
+    });
+}
+
+// Delete local image files.
+module.exports.delete_local_files = function(req, res, next) {
+    function deleteFile(file, done) {
+        fs.unlink(file, function(err) {
+            if(err) { return done(err); }
+            done(null, file);
+        });
+    }
+
+    parallel([
+        function(done) {
+            deleteFile(req.fullPicPath, done);
+        },
+        function(done) {
+            deleteFile(req.thumbnailPath, done);
+        },
+        function(done) {
+            deleteFile(req.file.path, done);
+        }
+    ], function done(err, results) {
+        if(err) { return next(err); }
+
+        next();
+    });
+}
+
+module.exports.update_profile_pic = function(req, res, next) {
+    var user = req.user;
+    user.profilePic.fullPicUrl = req.fullPicUrl;
+    user.profilePic.thumbnail = req.thumbnailUrl;
+
+    return user.save().then(function(user) {
+        res.json({
+            entities: {
+                users: user
+            }
+        });
+    }).catch(function(err) {
+        next(err);
+    });
+}
+
+
 module.exports.update_user_profile = function(req, res) {
     if(req.user) {
         var authUserId = req.user._id;
@@ -71,13 +242,14 @@ module.exports.update_user_profile = function(req, res) {
 
             if(user._id.toString() === authUserId) {
                 user.username === req.body.username || user.username;
-                user.profilePicUrl === req.file.location || user.profilePicUrl;
                 user.bio === req.body.bio || user.bio;
 
                 return user.save().then(function(updatedUser) {
                     res.json({
                         message: 'Profile successfully updated!',
-                        user: updatedUser
+                        entities: {
+                            users: updatedUser
+                        }
                     });
                 });
             } else {
@@ -204,7 +376,11 @@ module.exports.get_user = function(req, res) {
         }
 
         // Determine which fields will be sent.
-        res.json(user);
+        res.json({
+            entities: {
+                users: user
+            }
+        });
     }).catch(function(err) {
         next(err);
     });
@@ -223,7 +399,8 @@ module.exports.get_user_posts = function(req, res) {
     return User.findById(userId).populate({
         path: 'posts',
         populate: {
-            path: 'user'
+            path: 'user',
+            select: '_id username miniProfilePicUrl'
         },
         options: { limit: 25, sort: -1 }
     }).exec().then(function(user) {
@@ -264,7 +441,8 @@ module.exports.get_user_feed_posts = function(req, res, next) {
         // by catch statement.
         // Think about streaming this response.
         return Post.find({ 'user': { $in: user.following }}).populate({
-            path: 'user'
+            path: 'user',
+            select: '_id username miniProfilePicUrl'
         }).exec().then(function(posts) {
             var feedPosts = [];
             posts.forEach(function(post) {

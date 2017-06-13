@@ -6,10 +6,10 @@ var mongoose     = require('mongoose');
 var Promise      = require('bluebird');
 mongoose.Promise = Promise;
 
-// Creates and responds with new relationship.
-module.exports.create_relationship = function(req, res, next) {
+// Verify docs exist in DB for both create and delete actions.
+module.exports.verify_docs = function(req, res, next) {
     if(req.user) {
-        var authUserId = req.user._id; // String
+        var authUserId = req.user._id; //String
         var followedId = req.body.followedId; // String
 
         var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
@@ -22,25 +22,34 @@ module.exports.create_relationship = function(req, res, next) {
             User.find({ '_id': { $in: [authUserId, followedId] } }).exec()
         ];
 
-        function pushRel(doc) {
-            if(owner === null) {
-                throw new Error('Cannot operate on an undefined post/user.');
+        return Promise.all(promises).then(function(results) {
+            if(results.constructor !== Array || results.length < 2) {
+                return res.status(404).json({
+                    message: 'Follower and/or followed user not found.'
+                });
             }
 
-            if(doc._id.toString() === authUserId) {
-                doc.following.push(followedId);
-                return doc.save();
+            var nullDoc = false;
+            for(var i = 0; i < results.length; i++) {
+                if(results[i] === null) {
+                    nullDoc = true;
+                    break;
+                }
+
+                if(results[i]._id.toString() === authUserId) {
+                    req.follower = results[i];
+                }
+
+                req.followed = results[i];
             }
 
-            doc.followers.push(authUserId);
-            return doc.save();
-        }
+            if(nullDoc) {
+                return res.status(404).json({
+                    message: 'Follower and/or followed user not found.'
+                });
+            }
 
-        return Promise.map(promises, pushRel).then(function() {
-            res.json({
-                message: 'Relationship successfully created.',
-                followedId: followedId
-            });
+            next();
         }).catch(function(err) {
             next(err);
         });
@@ -50,75 +59,102 @@ module.exports.create_relationship = function(req, res, next) {
             message: 'Please authenticate.'
         });
     }
+}
+
+// Creates and responds with new relationship.
+module.exports.create_relationship = function(req, res, next) {
+    var follower = req.follower;
+    var followed = req.followed;
+
+    var followedIndex = follower.following.indexOf(followed._id);
+    var followerIndex = followed.followers.indexOf(follower._id);
+
+    if(followedIndex !== -1 && followerIndex !== -1) {
+        return res.status(309).json({
+            message: 'A relationship between this users already exists.'
+        });
+    }
+
+    if(followedIndex !== -1 && followerIndex === -1) {
+        followed.followers.push(follower._id);
+        return followed.save().then(function() {
+            res.status(309).json({
+                message: 'A relationship between this users already exists.'
+            });
+        }).catch(function(err) {
+            next(err);
+        });
+    }
+
+    if(followedIndex === -1 && followerIndex !== -1) {
+        follower.following.push(followed._id);
+        return follower.save().then(function() {
+            res.json({
+                message: 'Relationship successfully created.',
+                followedId: followed._id
+            });
+        }).catch(function(err) {
+            next(err);
+        });
+    }
+
+    follower.following.push(followed._id);
+    followed.followers.push(follower._id);
+
+    return Promise.all([follower.save(), followed.save()]).then(function() {
+        res.json({
+            message: 'Relationship successfully created.',
+            followedId: followed._id
+        });
+    }).catch(function(err) {
+        next(err);
+    });
 }
 
 // Deletes an existing relationship.
-module.exports.delete_relationship_follower = function(req, res, next) {
-    if(req.user) {
-        var authUserId = req.user._id; // String
-        var followedId = req.body.followedId; // String
+module.exports.delete_relationship = function(req, res, next) {
+    var follower = req.follower;
+    var followed = req.followed;
 
-        var checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+    var followedIndex = follower.following.indexOf(followed._id);
+    var followerIndex = followed.followers.indexOf(follower._id);
 
-        if(!checkForHexRegExp.test(authUserId) || !checkForHexRegExp.test(followedId)) {
-            throw new Error('Bad parameters.');
-        }
+    if(followedIndex === -1 && followerIndex === -1) {
+        return res.status(404).json({
+            message: 'Relationship not found.'
+        });
+    }
 
-        return User.findById(authUserId).exec().then(function(user) {
-            if(user === null) {
-                return res.status(404).json({
-                    message: 'User not found.'
-                });
-            }
-            // var index = user.following.indexOf(mongoose.Types.ObjectId(followedId));
-            var index = user.following.indexOf(followedId);
-
-            if(index === -1) {
-                return res.status(404).json({
-                    message: 'Relationship not found.'
-                });
-            }
-
-            user.following.splice(index, 1);
-            return user.save().then(function() {
-                next();
+    if(followedIndex === -1 && followerIndex !== -1) {
+        followed.followers.splice(followerIndex, 1);
+        return followed.save().then(function() {
+            res.status(404).json({
+                message: 'Relationship not found.'
             });
         }).catch(function(err) {
             next(err);
         });
-    } else {
-        // If no authenticated user
-        res.status(401).json({
-            message: 'Please authenticate.'
+    }
+
+    if(followedIndex !== -1 && followerIndex === -1) {
+        follower.following.splice(followedIndex, 1);
+        return follower.save().then(function() {
+            res.json({
+                message: 'Relationship successfully deleted.',
+                followedId: followed._id
+            });
+        }).catch(function(err) {
+            next(err);
         });
     }
-}
 
-module.exports.delete_relationship_followed = function(req, res, next) {
-    var followerId = req.user._id; // String
-    var followedId = req.body.followedId; // String
+    follower.following.splice(followedIndex, 1);
+    followed.followers.splice(followerIndex, 1);
 
-    return User.findById(followedId).exec().then(function(user) {
-        if(user === null) {
-            return res.status(404).json({
-                message: 'Relationship not found.'
-            });
-        }
-
-        // var index = user.followers.indexOf(mongoose.Types.ObjectId(followerId));
-        var index = user.followers.indexOf(followerId);
-
-        if(index === -1) {
-            return res.status(404).json({
-                message: 'Relationship not found.'
-            });
-        }
-
-        user.followers.splice(index, 1);
-        return user.save().then(function() {
-            res.json({
-                message: 'Relationship successfully deleted.'
-            });
+    return Promise.all([follower.save(), followed.save()]).then(function() {
+        res.json({
+            message: 'Relationship successfully deleted.',
+            followedId: followed._id
         });
     }).catch(function(err) {
         next(err);

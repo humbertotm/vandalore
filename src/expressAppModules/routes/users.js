@@ -9,29 +9,19 @@ var expressJWT = require('express-jwt');
 // multer
 var aws = require('aws-sdk');
 var multer = require('multer');
-var multerS3 = require('multer-s3');
 
 // This path is relative to the working directory, not the path of this file.
-aws.config.loadFromPath('./config/AWS/aws-config.json');
+// Won't work if I run the server from another path different than /src.
 
-var s3 = new aws.S3({ params: {
-        Bucket: 'vandalore-test'
+var storage = multer.diskStorage({
+    // create dir beforehand
+    destination: '../public/images',
+    filename: function(req, file, cb) {
+        cb(null, file.fieldname + '-' + Date.now().toString() + '.jpg');
     }
 });
 
-var upload = multer({
-    storage: multerS3({
-        s3: s3,
-        bucket: 'vandalore-test',
-        contentType: multerS3.AUTO_CONTENT_TYPE,
-        metadata: function(req, file, cb) {
-            cb(null, {fieldName: file.fieldname});
-        },
-        key: function(req, file, cb) {
-            cb(null, Date.now().toString() + '.JPG');
-        }
-    })
-});
+var upload = multer({ storage: storage });
 
 var userRoutes = require('express').Router();
 
@@ -48,7 +38,17 @@ userRoutes.delete('/', expressJWT({
 // Updates an existing user profile.
 userRoutes.put('/profile', expressJWT({
     secret: 'secret'
-}), upload.single('profile-pic'), users_controller.update_user_profile);
+}), users_controller.update_user_profile);
+
+// Updates user's profile picture.
+userRoutes.put('/profile_picture', expressJWT({
+    secret: 'secret',
+}), upload.single('profile-pic'), users_controller.verify_user,
+                                  users_controller.image_versioning,
+                                  users_controller.store_in_s3,
+                                  users_controller.delete_local_files,
+                                  users_controller.update_profile_pic
+);
 
 // Updates a user's local email.
 userRoutes.put('/email', expressJWT({

@@ -24,7 +24,7 @@ module.exports.get_posts = function(req, res, next) {
         }
     }).exec().then(function(category) {
         if(category === null) {
-            res.status(404).json({
+            return res.status(404).json({
                 message: 'Category not found.'
             });
         }
@@ -32,6 +32,7 @@ module.exports.get_posts = function(req, res, next) {
         var posts = category.posts;
         var catPosts = [];
         posts.forEach(function(post) {
+            // Just be sure null is returned when no user is found, not undefined.
             if(post.user !== null) {
                 catPosts.push(post);
             }
@@ -69,7 +70,7 @@ module.exports.get_more_posts = function(req, res, next) {
         // Not sure if maxId as a String will work here.
         // If it doesn't:
         // var toSkip = cat.posts.indexOf(mongoose.Types.ObjectId(maxId));
-        var toSkip = cat.posts.indexOf(maxId);
+        var toSkip = cat.posts.indexOf(mongoose.Types.ObjectId(maxId));
         return cat.populate({
             path: 'posts',
             select: '-comments -postSaveHookEnabled -postRemoveHookEnabled',
@@ -109,6 +110,10 @@ module.exports.create_category = function(req, res, next) {
     var id = req.body._id; // String
     var catName = req.body.name; // String
 
+    if(isNaN(categoryId)) {
+        throw new Error('Bad parameters.');
+    }
+
     var category = new Category({
         _id: id,
         categoryName: catName
@@ -121,5 +126,4 @@ module.exports.create_category = function(req, res, next) {
     }).catch(function(err) {
         next(err);
     });
-
 }
