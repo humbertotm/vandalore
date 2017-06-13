@@ -21,6 +21,7 @@ module.exports.get_notifications = function(req, res, next) {
         // Maybe a cursor for streaming would work better?
         return User.findById(userId).populate({
             path: 'notifications',
+            select: '-userId',
             options: { limit: 5, sort: -1 }
         }).exec().then(function(user) {
             if(user === null) {
@@ -67,16 +68,16 @@ module.exports.mark_notification_as_read = function(req, res, next) {
 
             if(notification.userId.toString() === authUserId) {
                 notification.read = true;
-                return notification.save();
+                return notification.save().then(function(noti) {
+                    res.json({
+                        notificationId: noti._id
+                    })
+                });
             }
 
             // If authenticated user does not match notification owner
             res.status(403).json({
                 message: 'You are not authorized to perform this operation.'
-            });
-        }).then(function(noti) {
-            res.json({
-                notificationId: noti._id
             });
         }).catch(function(err) {
             next(err);

@@ -32,10 +32,6 @@ var commentSchema = new Schema({
     timestamps: true
 });
 
-commentSchema.post('save', commentMid.postSave);
-
-commentSchema.post('remove', commentMid.postRemove);
-
 // Concurrency edge cases for hooks.
 
 // Export model.

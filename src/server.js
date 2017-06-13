@@ -5,7 +5,8 @@ var express       = require('express'),
     bodyParser    = require('body-parser');
 
 // DB config
-var configDB      = require('./config/database');
+// !!! The file required shall never go to GitHub. Sensitive info.
+var configDB      = require('../../DBConfig/dbConfig.js');
 
 // Import routes
 var auth          = require('./expressAppModules/routes/auth'),

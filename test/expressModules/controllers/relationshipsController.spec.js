@@ -2,8 +2,7 @@
 var relController    = require('../../../src/expressAppModules/controllers/relationshipsController');
 
 // Require models
-var Relationship     = require('../../../src/expressAppModules/models/relationshipModel'),
-    User             = require('../../../src/expressAppModules/models/userModel');
+var User             = require('../../../src/expressAppModules/models/userModel');
 
 // Require testing tools
 var chai             = require('chai'),
@@ -19,25 +18,23 @@ require('sinon-mongoose');
 sinonStubPromise(sinon);
 
 // Require mongoose.
-var mongoose         = require('mongoose');
-mongoose.Promise     = require('bluebird');
+var mongoose         = require('mongoose'),
+    Promise          = require('bluebird');
+mongoose.Promise     = Promise;
 
 describe('Relationships controller', function() {
-    describe('create_relationship', function() {
-        var id1, id2, id3, rel, follower, followed, res,
-            reqWithUser, reqWithoutUser, next, save;
+    describe('verify_docs', function() {
+        var reqWithUser, reqWithoutUser, res,
+            id1, id2, id3, promiseAll, err, next,
+            follower, followed, userMock;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
             id1 = mongoose.Types.ObjectId();
             id2 = mongoose.Types.ObjectId();
             id3 = mongoose.Types.ObjectId();
-            next = sandbox.spy();
-            save = sandbox.stub(Relationship.prototype, 'save');
 
             reqWithUser = mockHttp.createRequest({
-                method: 'POST',
-                url: '/relationships',
                 user: {
                     _id: id1.toString()
                 },
@@ -47,34 +44,34 @@ describe('Relationships controller', function() {
             });
 
             reqWithoutUser = mockHttp.createRequest({
-                method: 'POST',
-                url: '/relationships',
                 body: {
-                    followedId: id2.toString()
+                    postId: id2.toString()
                 }
             });
 
-            res = mockHttp.createResponse();
+            res = mockHttp.createResponse({});
 
-            rel = new Relationship({
-                _id: id3,
-                followedId: id2,
-                followerId: id1
-            });
+            userMock = sandbox.mock(User);
+
+            follower = new User();
+            followed = new User();
+
+            next = sandbox.spy();
+            promiseAll = sandbox.stub(Promise, 'all');
+
         });
 
         afterEach(function() {
-            sandbox.restore();
-            rel = {};
-            follower = {};
-            followed = {};
             reqWithUser = {};
             reqWithoutUser = {};
             res = {};
+            follower = {};
+            followed = {};
+            sandbox.restore();
         });
 
-        it('sends 401 response when there is no authenticated user', function() {
-            relController.create_relationship(reqWithoutUser, res, next);
+        it('responds with 401 status when no user is authenticated', function() {
+            relController.verify_docs(reqWithoutUser, res, next);
 
             var data = JSON.parse(res._getData());
 
@@ -82,31 +79,90 @@ describe('Relationships controller', function() {
             expect(data.message).to.equal('Please authenticate.');
         });
 
-        it('responds with a newly created relationship', function(done) {
-            save.returnsPromise().resolves(rel);
+        it('calls next() when everything goes right', function(done) {
+            follower._id = id1;
+            followed._id = id2;
 
-            relController.create_relationship(reqWithUser, res, next).then(function() {
-                var data = JSON.parse(res._getData());
+            userMock
+                .expects('find')
+                .chain('exec')
+                .resolves();
 
-                expect(save.called).to.equal(true);
-                expect(res.statusCode).to.equal(200);
-                expect(data.followedId).to.exist;
-                expect(next.calledOnce).to.equal(true);
+            promiseAll.returnsPromise().resolves([follower, followed]);
+
+            relController.verify_docs(reqWithUser, res, next).then(function() {
+                userMock.verify();
+                expect(promiseAll.called).to.equal(true);
+                expect(next.called).to.equal(true);
                 done();
             });
         });
 
-        it('calls next(err) when rel.save() rejects', function(done) {
-            var err = {
-                errors: {
-                    message: 'Some error message.'
-                }
-            }
+        it('responds with 404 status when only one user is returned by User.find()', function(done) {
+            userMock
+                .expects('find')
+                .chain('exec')
+                .resolves();
 
-            save.returnsPromise().rejects(err);
+            promiseAll.returnsPromise().resolves(follower);
 
-            relController.create_relationship(reqWithUser, res, next).then(function() {
-                expect(save.called).to.equal(true);
+            relController.verify_docs(reqWithUser, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                userMock.verify();
+                expect(promiseAll.called).to.equal(true);
+                expect(next.called).to.equal(false);
+                expect(res.statusCode).to.equal(404);
+                expect(data.message).to.equal('Follower and/or followed user not found.');
+                done();
+            });
+        });
+
+        it('responds with 404 status when follower is null', function(done) {
+            userMock
+                .expects('find')
+                .chain('exec')
+                .resolves();
+
+            promiseAll.returnsPromise().resolves([null, followed]);
+
+            relController.verify_docs(reqWithUser, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                userMock.verify();
+                expect(promiseAll.called).to.equal(true);
+                expect(next.called).to.equal(false);
+                expect(res.statusCode).to.equal(404);
+                expect(data.message).to.equal('Follower and/or followed user not found.');
+                done();
+            });
+        });
+
+        it('responds with 404 status when followed is null', function(done) {
+            userMock
+                .expects('find')
+                .chain('exec')
+                .resolves();
+
+            promiseAll.returnsPromise().resolves([follower, null]);
+
+            relController.verify_docs(reqWithUser, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                userMock.verify();
+                expect(promiseAll.called).to.equal(true);
+                expect(next.called).to.equal(false);
+                expect(res.statusCode).to.equal(404);
+                expect(data.message).to.equal('Follower and/or followed user not found.');
+                done();
+            });
+        });
+
+        it('calls next(err) when Promise.all() rejects', function() {
+            err = {};
+            promiseAll.returnsPromise().rejects(err);
+
+            relController.verify_docs(reqWithUser, res, next).then(function(done) {
                 expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
@@ -115,90 +171,23 @@ describe('Relationships controller', function() {
         it('throws when bad parameters are passed', function() {
             var badReq = mockHttp.createRequest({
                 user: {
-                    _id: 'aaaa'
+                    _id: id1.toString()
                 },
                 body: {
-                    followedId: 'bbbb'
+                    followedId: 'aaaa'
                 }
             });
 
             expect(function() {
-                relController.create_relationship(badReq, res, next);
+                relController.verify_docs(badReq, res, next);
             }).to.throw(Error);
         });
     });
 
-/*
-    describe.skip('push_and_save_rel middleware', function() {
-        var id1, id2, id3, rel, save, follower, followed,
-            consoleLog, promiseAll, userMock;
-        var sandbox = sinon.sandbox.create();
-
-        beforeEach(function() {
-            id1 = mongoose.Types.ObjectId();
-            id2 = mongoose.Types.ObjectId();
-            id3 = mongoose.Types.ObjectId();
-
-            save       = sandbox.spy(User.prototype, 'save');
-            consoleLog = sandbox.stub(console, 'log');
-            promiseAll = sandbox.stub(Promise, 'all');
-            next       = sandbox.spy();
-
-            follower = new User({
-                _id: id1,
-                following: []
-            });
-
-            followed: new User({
-                _id: id2,
-                followers: []
-            });
-
-            rel = new Relationship({
-                _id: id3,
-                followerId: id1,
-                followedId: id2
-            });
-
-            userMock = sandbox.mock(User);
-        });
-
-        afterEach(function() {
-            sandbox.restore();
-            follower = {};
-            followed = {};
-            rel = {};
-        });
-
-        it('makes the appropriate calls when everything goes right', function(done) {
-            // Not working.
-            // Not sure expectations are correctly defined.
-            userMock
-                .expects('findById')
-                .chain('exec')
-                .resolves();
-
-            promiseAll.returnsPromise().resolves([follower, followed]);
-
-            relController.push_and_save_rel(rel).then(function() {
-                userMock.verify();
-                expect(promiseAll.called).to.equal(true);
-                // Calling only once.
-                // expect(save.callCount).to.equal(1);
-                done();
-            });
-        });
-
-        it('calls next(err) when Promise.all() rejects', function(done) {
-
-        });
-    });
-*/
-
-    describe('delete_relationship', function() {
-        var reqWithUser, reqWithoutUser, res,
-            id1, id2, id3, id4, id5, rel,
-            relMock, remove, next;
+    describe('create_relationship', function() {
+        var id1, id2, id3, id4, id5,
+            follower, followed, res,
+            req, next, save, promiseAll;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
@@ -208,155 +197,317 @@ describe('Relationships controller', function() {
             id4 = mongoose.Types.ObjectId();
             id5 = mongoose.Types.ObjectId();
 
-            reqWithUser = mockHttp.createRequest({
-                method: 'DELETE',
-                url: '/relationships',
-                user: {
-                    _id: id1.toString()
-                },
-                body: {
-                    _id: id4.toString(),
-                    followerId: id1.toString(),
-                    followedId: id2.toString()
-                }
-            });
+            next = sandbox.spy();
+            save = sandbox.stub(User.prototype, 'save');
+            promiseAll = sandbox.stub(Promise, 'all');
 
-            reqWithoutUser = mockHttp.createRequest({
-                method: 'DELETE',
+            follower = new User();
+            followed = new User();
+
+            req = mockHttp.createRequest({
+                method: 'POST',
                 url: '/relationships',
-                body: {
-                    _id: id2.toString()
+                follower: follower,
+                followed: followed
+            });
+            res = mockHttp.createResponse();
+        });
+
+        afterEach(function() {
+            sandbox.restore();
+            follower = {};
+            followed = {};
+            req = {};
+            res = {};
+        });
+
+        it('responds with 309 if a relationship already exists, case 1', function() {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id2, id4];
+            followed.followers = [id4, id1];
+
+            relController.create_relationship(req, res, next);
+
+            var data = JSON.parse(res._getData());
+
+            expect(res.statusCode).to.equal(309);
+            expect(data.message).to.equal('A relationship between this users already exists.');
+        });
+
+        it('responds with 309 if a relationship already exists, case 2', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id2, id4];
+            followed.followers = [id4, id3];
+
+            save.returnsPromise().resolves();
+
+            relController.create_relationship(req, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                expect(save.calledOnce).to.equal(true);
+                expect(next.called).to.equal(false);
+                expect(res.statusCode).to.equal(309);
+                expect(data.message).to.equal('A relationship between this users already exists.');
+                done();
+            });
+        });
+
+        it('calls next(err) when followed.save() rejects, case 2', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id2, id4];
+            followed.followers = [id4, id3];
+
+            var err = {};
+
+            save.returnsPromise().rejects(err);
+
+            relController.create_relationship(req, res, next).then(function() {
+                expect(save.calledOnce).to.equal(true);
+                expect(next.withArgs(err).calledOnce).to.equal(true);
+                done();
+            });
+        });
+
+        it('responds with newly created relationship, case 3', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id4];
+            followed.followers = [id4, id3, id1];
+
+
+            save.returnsPromise().resolves();
+
+            relController.create_relationship(req, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                expect(save.calledOnce).to.equal(true);
+                expect(res.statusCode).to.equal(200);
+                expect(data.message).to.equal('Relationship successfully created.');
+                expect(data.followedId).to.exist;
+                done();
+            });
+        });
+
+        it('calls next(err) when follower.save() rejects, case 3', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id4];
+            followed.followers = [id4, id3, id1];
+
+            var err = {};
+
+            save.returnsPromise().rejects(err);
+
+            relController.create_relationship(req, res, next).then(function() {
+                expect(save.calledOnce).to.equal(true);
+                expect(next.withArgs(err).calledOnce).to.equal(true);
+                done();
+            });
+        });
+
+        it('responds with a newly created relationship, case 4', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id4];
+            followed.followers = [id4, id3];
+
+            promiseAll.returnsPromise().resolves();
+
+            relController.create_relationship(req, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                expect(promiseAll.called).to.equal(true);
+                // expect(save.calledTwice).to.equal(true);
+                expect(res.statusCode).to.equal(200);
+                expect(data.message).to.equal('Relationship successfully created.');
+                expect(data.followedId).to.exist;
+                expect(next.calledOnce).to.equal(false);
+                done();
+            });
+        });
+
+        it('calls next(err) when Promise.all() rejects', function(done) {
+            var err = {
+                errors: {
+                    message: 'Some error message.'
                 }
+            }
+
+            promiseAll.returnsPromise().rejects(err);
+
+            relController.create_relationship(req, res, next).then(function() {
+                expect(promiseAll.called).to.equal(true);
+                expect(next.withArgs(err).called).to.equal(true);
+                done();
+            });
+        });
+    });
+
+    describe('delete_relationship', function() {
+        var req, res, follower, followed,
+            id1, id2, id3, id4, id5,
+            save, next, promiseAll;
+        var sandbox = sinon.sandbox.create();
+
+        beforeEach(function() {
+            id1 = mongoose.Types.ObjectId();
+            id2 = mongoose.Types.ObjectId();
+            id3 = mongoose.Types.ObjectId();
+            id4 = mongoose.Types.ObjectId();
+            id5 = mongoose.Types.ObjectId();
+
+            follower = new User();
+            followed = new User();
+
+            req = mockHttp.createRequest({
+                follower: follower,
+                followed: followed
             });
 
             res = mockHttp.createResponse();
 
-            rel = new Relationship({
-                _id: id4,
-                followerId: id1,
-                followedId: id2
-            });
-
-            relMock = sandbox.mock(Relationship);
-            remove  = sandbox.stub(Relationship.prototype, 'remove');
-            next    = sandbox.spy();
+            save = sandbox.stub(User.prototype, 'save');
+            next = sandbox.spy();
+            promiseAll = sandbox.stub(Promise, 'all');
         });
 
         afterEach(function() {
             sandbox.restore();
             res = {};
-            reqWithUser = {};
-            reqWithoutUser = {};
-            rel = {};
+            req = {};
+            follower = {};
+            followed = {};
         });
 
-        it('returns 401 if no user is authenticated', function() {
-            relController.delete_relationship(reqWithoutUser, res, next);
+        it('responds with 404 if relationship is not found, case 1', function() {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id4];
+            followed.followers = [id4, id2];
+
+            relController.delete_relationship(req, res, next);
 
             var data = JSON.parse(res._getData());
 
-            expect(remove.called).to.equal(false);
-            expect(res.statusCode).to.equal(401);
-            expect(data.message).to.equal('Please authenticate.');
+            expect(res.statusCode).to.equal(404);
+            expect(data.message).to.equal('Relationship not found.');
         });
 
-        it('successfully deletes relationship and sends 200 res', function(done) {
-            relMock
-                .expects('findById')
-                .chain('exec')
-                .resolves(rel);
+        it('responds with 404 if relationship is not found, case 2', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id4];
+            followed.followers = [id4, id1, id3];
 
-            remove.returnsPromise().resolves();
+            save.returnsPromise().resolves();
 
-            relController.delete_relationship(reqWithUser, res, next).then(function() {
+            relController.delete_relationship(req, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
-                relMock.verify();
-                expect(remove.called).to.equal(true);
+                expect(save.calledOnce).to.equal(true);
+                expect(next.called).to.equal(false);
+                expect(res.statusCode).to.equal(404);
+                expect(data.message).to.equal('Relationship not found.');
+                done();
+            });
+        });
+
+        it('calls next(err) when followed.save() rejects, case 2', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id4];
+            followed.followers = [id4, id1, id3];
+
+            var err = {};
+
+            save.returnsPromise().rejects(err);
+
+            relController.delete_relationship(req, res, next).then(function() {
+                expect(save.calledOnce).to.equal(true);
+                expect(next.withArgs(err).calledOnce).to.equal(true);
+                done();
+            });
+        });
+
+        it('relationship successfully deleted, case 3', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id2, id4];
+            followed.followers = [id4, id3];
+
+            save.returnsPromise().resolves();
+
+            relController.delete_relationship(req, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                expect(save.calledOnce).to.equal(true);
                 expect(res.statusCode).to.equal(200);
                 expect(data.message).to.equal('Relationship successfully deleted.');
-                expect(data.relationshipId).to.exist;
+                expect(data.followedId).to.exist;
                 done();
             });
         });
 
-        it('respnds with 403 status when req.user._id does not match followedId', function(done) {
-            var rel1 = new Relationship({
-                _id: id3,
-                followerId: id2,
-                followedId: id1
+        it('calls next(err) when follower.save() rejects, case 3', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id2, id4];
+            followed.followers = [id4, id3];
+
+            var err = {};
+
+            save.returnsPromise().rejects(err);
+
+            relController.delete_relationship(req, res, next).then(function() {
+                expect(save.calledOnce).to.equal(true);
+                expect(next.withArgs(err).calledOnce).to.equal(true);
+                done();
             });
+        });
 
-            relMock
-                .expects('findById')
-                .chain('exec')
-                .resolves(rel1);
+        it('responds with successfully deleted relationship, case 4', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id2, id4];
+            followed.followers = [id4, id3, id1];
 
-            relController.delete_relationship(reqWithUser, res, next).then(function() {
+            promiseAll.returnsPromise().resolves();
+
+            relController.delete_relationship(req, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
-                relMock.verify();
-                expect(remove.called).to.equal(false);
-                expect(res.statusCode).to.equal(403);
-                expect(data.message).to.equal('You are not authorized to perform this operation.');
+                expect(promiseAll.called).to.equal(true);
+                // expect(save.calledTwice).to.equal(true);
+                expect(res.statusCode).to.equal(200);
+                expect(data.message).to.equal('Relationship successfully deleted.');
+                expect(data.followedId).to.exist;
+                expect(next.calledOnce).to.equal(false);
                 done();
             });
         });
 
-        it('calls next(err) when Relationship.findById() rejects', function(done) {
+        it('calls next(err) when Promise.all() rejects', function(done) {
+            follower._id = id1;
+            followed._id = id2;
+            follower.following = [id3, id2, id4];
+            followed.followers = [id4, id3, id1];
+
             var err = {
                 errors: {
                     message: 'Some error message.'
                 }
-            };
+            }
 
-            relMock
-                .expects('findById')
-                .chain('exec')
-                .rejects(err);
+            promiseAll.returnsPromise().rejects(err);
 
-            relController.delete_relationship(reqWithUser, res, next).then(function() {
-                relMock.verify();
+            relController.delete_relationship(req, res, next).then(function() {
+                expect(promiseAll.called).to.equal(true);
                 expect(next.withArgs(err).called).to.equal(true);
                 done();
             });
-        });
-
-        it('calls next(err) when rel.remove() rejects', function(done) {
-            var err = {
-                errors: {
-                    message: 'Some error message.'
-                }
-            };
-
-            relMock
-                .expects('findById')
-                .chain('exec')
-                .resolves(rel);
-
-            remove.returnsPromise().rejects(err);
-
-            relController.delete_relationship(reqWithUser, res, next).then(function() {
-                relMock.verify();
-                expect(remove.called).to.equal(true);
-                expect(next.withArgs(err).called).to.equal(true);
-                done();
-            });
-        });
-
-        it('throws when bad parameters are passed', function() {
-            var badReq = mockHttp.createRequest({
-                user: {
-                    _id: 'aaaa'
-                },
-                body: {
-                    followedId: 'bbbb'
-                }
-            });
-
-            expect(function() {
-                relController.delete_relationship(badReq, res, next)
-            }).to.throw(Error);
         });
     });
 });

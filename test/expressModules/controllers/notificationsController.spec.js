@@ -19,10 +19,11 @@ require('sinon-mongoose');
 sinonStubPromise(sinon);
 
 // Require mongoose.
-var mongoose         = require('mongoose');
-mongoose.Promise     = require('bluebird');
+var mongoose         = require('mongoose'),
+    Promise          = require('bluebird');
+mongoose.Promise     = Promise;
 
-describe.only('Notifactions controller', function() {
+describe('Notifactions controller', function() {
     describe('get_notifications', function() {
         var reqWithUser, reqWithoutUser, res,
             id1, id2, id3, id4, id5,
@@ -41,18 +42,12 @@ describe.only('Notifactions controller', function() {
                 url: '/notifications',
                 user: {
                     _id: id1.toString()
-                },
-                params: {
-                    userId: id1.toString()
                 }
             });
 
             reqWithoutUser = mockHttp.createRequest({
                 method: 'GET',
-                url: '/notifications',
-                params: {
-                    userId: id1.toString()
-                }
+                url: '/notifications'
             });
 
             noti1 = new Notification({
@@ -114,6 +109,24 @@ describe.only('Notifactions controller', function() {
                 expect(res.statusCode).to.equal(200);
                 expect(data.entities).to.exist;
                 expect(data.entities.notifications.length).to.equal(2);
+                done();
+            });
+        });
+
+        it('responds with 404 if no user is found', function(done) {
+            userMock
+                .expects('findById')
+                .chain('populate')
+                .chain('exec')
+                .resolves(null);
+
+            notiController.get_notifications(reqWithUser, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                expect(res.statusCode).to.equal(404);
+                expect(data.message).to.exist;
+                expect(data.message).to.equal('User not found.')
+                expect(next.called).to.equal(false);
                 done();
             });
         });
@@ -235,7 +248,7 @@ describe.only('Notifactions controller', function() {
                 notiMock.verify();
                 expect(save.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
-                expect(data._id).to.exist;
+                expect(data.notificationId).to.exist;
                 done();
             });
         });
@@ -310,6 +323,21 @@ describe.only('Notifactions controller', function() {
                 notiMock.verify();
                 expect(save.called).to.equal(true);
                 expect(next.withArgs(err).called).to.equal(true);
+                done();
+            });
+        });
+
+        it('responds with 404 if notification is not found', function(done) {
+            notiMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(null);
+
+            notiController.mark_notification_as_read(reqWithUser, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                expect(res.statusCode).to.equal(404);
+                expect(data.message).to.equal('Notification not found.');
                 done();
             });
         });

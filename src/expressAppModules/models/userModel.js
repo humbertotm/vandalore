@@ -69,10 +69,17 @@ var userSchema = new Schema({
         maxlength: 500
     },
 
-    profilePicUrl: {
-        type: String,
-        default: 'default-pic-url',
-        required: true
+    profilePic: {
+        fullPicUrl: {
+            type: String,
+            default: 'default-pic-url',
+            required: true
+        },
+        thumbnail: {
+            type: String,
+            default: 'default-thumbnail-url',
+            required: true
+        }
     },
 
     // Has confirmed its email address
@@ -82,15 +89,6 @@ var userSchema = new Schema({
         required: true
     },
 
-/*
-    // Has not deactivated its account.
-    active: {
-        type: Boolean,
-        default: true,
-        required: true
-    },
-
-*/
     admin : {
         type: Boolean,
         default: false,
@@ -126,7 +124,8 @@ var userSchema = new Schema({
     following: [{
         type: Schema.Types.ObjectId,
         ref: 'User',
-        default: []
+        default: [],
+        required: true
     }],
 
     /*
@@ -140,7 +139,8 @@ var userSchema = new Schema({
     followers: [{
         type: Schema.Types.ObjectId,
         ref: 'User',
-        default: []
+        default: [],
+        required: true
     }],
 
     /*

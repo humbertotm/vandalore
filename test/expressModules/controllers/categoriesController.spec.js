@@ -3,7 +3,8 @@ var catController    = require('../../../src/expressAppModules/controllers/categ
 
 // Require models
 var Category         = require('../../../src/expressAppModules/models/categoryModel'),
-    Post             = require('../../../src/expressAppModules/models/postModel');
+    Post             = require('../../../src/expressAppModules/models/postModel'),
+    User             = require('../../../src/expressAppModules/models/userModel');
 
 // Require testing tools
 var chai             = require('chai'),
@@ -19,8 +20,9 @@ require('sinon-mongoose');
 sinonStubPromise(sinon);
 
 // Require mongoose.
-var mongoose         = require('mongoose');
-mongoose.Promise     = require('bluebird');
+var mongoose         = require('mongoose'),
+    Promise          = require('bluebird');
+mongoose.Promise     = Promise;
 
 describe('Categories controller', function() {
     describe('get_posts', function() {
@@ -43,13 +45,13 @@ describe('Categories controller', function() {
             catMock = sandbox.mock(Category);
             next    = sandbox.spy();
 
+            post1 = new Post();
+            post2 = new Post();
+
             cat = new Category({
                 _id: 1,
                 posts: [post1, post2]
             });
-
-            post1 = new Post();
-            post2 = new Post();
         });
 
         afterEach(function() {
@@ -62,23 +64,63 @@ describe('Categories controller', function() {
         });
 
         it('responds with posts for specified category', function(done) {
+            post1.user = id1;
+            post2.user = id2;
+
             catMock
                 .expects('findById')
                 .chain('populate')
                 .chain('exec')
                 .resolves(cat);
 
-            catController.get_posts(req, res).then(function() {
+            catController.get_posts(req, res, next).then(function() {
                 var data = JSON.parse(res._getData());
 
                 catMock.verify();
                 expect(res.statusCode).to.equal(200);
-                expect(data.length).to.equal(2);
+                expect(data.entities.posts.length).to.equal(2);
                 done();
             });
         });
 
-        it('passes err to next() when Category.findById() rejects', function(done) {
+        it('leaves orphaned posts out', function(done) {
+            post1.user = id1;
+            post2.user = null;
+
+            catMock
+                .expects('findById')
+                .chain('populate')
+                .chain('exec')
+                .resolves(cat);
+
+            catController.get_posts(req, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                catMock.verify();
+                expect(res.statusCode).to.equal(200);
+                expect(data.entities.posts.length).to.equal(1);
+                done();
+            });
+        });
+
+        it('responds with 404 when no category is found', function(done) {
+            catMock
+                .expects('findById')
+                .chain('populate')
+                .chain('exec')
+                .resolves(null);
+
+            catController.get_posts(req, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                catMock.verify();
+                expect(res.statusCode).to.equal(404);
+                expect(data.message).to.equal('Category not found.');
+                done();
+            });
+        });
+
+        it('calls next(err) when Category.findById() rejects', function(done) {
             var err = {
                 errors: {
                     message: 'Some error message.'
@@ -112,22 +154,21 @@ describe('Categories controller', function() {
     });
 
     describe('get_more_posts', function() {
-        var req, res, id1, id2, id3, id4, id5,
-            next, cat, post3, post4, catMock, pop, execPop;
+        var req, res, id1, id2, id3, id4, id5, u1, u2,
+            next, cat, post3, post4, post5, catMock, pop, execPop;
         var sandbox = sinon.sandbox.create();
 
         beforeEach(function() {
-            id1 = mongoose.Types.ObjectId;
-            id2 = mongoose.Types.ObjectId;
-            id3 = mongoose.Types.ObjectId;
-            id4 = mongoose.Types.ObjectId;
-            id5 = mongoose.Types.ObjectId;
+            id1 = mongoose.Types.ObjectId();
+            id2 = mongoose.Types.ObjectId();
+            id3 = mongoose.Types.ObjectId();
+            id4 = mongoose.Types.ObjectId();
+            id5 = mongoose.Types.ObjectId();
 
             req = mockHttp.createRequest({
-                // All params are parsed as Strings.
                 params: {
                     categoryId: '1',
-                    maxId: 'cccccccccccccccccccccccc'
+                    maxId: id1.toString()
                 }
             });
 
@@ -141,6 +182,9 @@ describe('Categories controller', function() {
 
             post3 = new Post();
             post4 = new Post();
+            post5 = new Post();
+            u1    = new User();
+            u2    = new User();
 
             catMock = sandbox.mock(Category);
             execPop = sandbox.stub(Category.prototype, 'execPopulate');
@@ -151,9 +195,15 @@ describe('Categories controller', function() {
             sandbox.restore();
             req = {};
             res = {};
+            post3 = {};
+            post4 = {};
+            cat = {};
         });
 
         it('responds with more posts for specified category', function(done) {
+            post3.user = u1;
+            post4.user = u2;
+
             var popCat = new Category({
                 _id: 1,
                 categoryName: 'hot',
@@ -173,8 +223,53 @@ describe('Categories controller', function() {
                 catMock.verify();
                 expect(execPop.called).to.equal(true);
                 expect(res.statusCode).to.equal(200);
-                expect(data.length).to.equal(2);
+                expect(data.entities.posts.length).to.equal(2);
                 done()
+            });
+        });
+
+        it('leaves out orphaned posts', function(done) {
+            post3.user = u1;
+            post4.user = u2;
+            post5.user = null;
+
+            var popCat = new Category({
+                _id: 1,
+                categoryName: 'hot',
+                posts: [post3, post4, post5]
+            });
+
+            catMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(cat)
+
+            execPop.returnsPromise().resolves(popCat);
+
+            catController.get_more_posts(req, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                catMock.verify();
+                expect(execPop.called).to.equal(true);
+                expect(res.statusCode).to.equal(200);
+                expect(data.entities.posts.length).to.equal(2);
+                done()
+            });
+        });
+
+        it('responds with 404 when no category is found', function(done) {
+            catMock
+                .expects('findById')
+                .chain('exec')
+                .resolves(null);
+
+            catController.get_posts(req, res, next).then(function() {
+                var data = JSON.parse(res._getData());
+
+                catMock.verify();
+                expect(res.statusCode).to.equal(404);
+                expect(data.message).to.equal('Category not found.');
+                done();
             });
         });
 
