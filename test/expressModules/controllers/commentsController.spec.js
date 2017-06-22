@@ -24,7 +24,7 @@ var mongoose     = require('mongoose'),
     Promise      = require('bluebird');
 mongoose.Promise = Promise;
 
-describe.only('Comments controller', function() {
+describe('Comments controller', function() {
     describe('verify_docs_create', function() {
         var reqWithUser, reqWithoutUser, res,
             id1, id2, id3, promiseAll, err, next,
@@ -182,7 +182,7 @@ describe.only('Comments controller', function() {
         });
     });
 
-    describe.only('create_comment', function() {
+    describe('create_comment', function() {
         var req, res, id1, id2, id3, err,
             comment, user, post, next, save, promiseAll, promiseJoin;
         var sandbox = sinon.sandbox.create();
@@ -235,7 +235,7 @@ describe.only('Comments controller', function() {
             });
         });
 
-        it.only('calls next err when Promise.join() rejects', function(done) {
+        it('calls next err when Promise.join() rejects', function(done) {
             var err = {};
             promiseJoin.returnsPromise().rejects(err);
 

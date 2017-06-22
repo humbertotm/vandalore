@@ -1,12 +1,46 @@
 // Require necessary models.
 var User         = require('../models/userModel');
 
-// Require mongoose and set bluebird to handle its promises.
+// Require mongoose and set mongoose.Promise to Bluebird.
 var mongoose     = require('mongoose');
 var Promise      = require('bluebird');
 mongoose.Promise = Promise;
 
-// Verify docs exist in DB for both create and delete actions.
+/**
+ * All these functions are middlewares to be employed as middlewares for
+ * /relationships routes.
+ * All these functions take req, res, and next as params.
+
+ * @param {Object} req Express req object, containing the incoming request data.
+ *
+ * @param {Object} res Express res object, containing the data to be sent in
+ * in the response.
+ *
+ * @param {Function} next Function that passes flow control to the next middleware
+ * in the chain when called with no arguments. When next(err) is called, flow
+ * control is passed directly to the error handling middleware set up for the route.
+*/
+
+/**
+ * This function verifies the follower and the followed user associated to the
+ * soon-to-be relationship exist in the database before proceeding to create it.
+ *
+ * If there is no authenticated user (!req.user), respond with 401.
+ *
+ * If there is an authenticated user (req.user as set by previous expressJWT
+ * middleware):
+ *
+ * Throw an Error if req.user._id or req.user._id or req.body.followedId is not
+ * a string representing a 12 byte hex number.
+ *
+ * Find both, follower and followed.
+ * If one or both are null (do not exist in the DB), respond with 404.
+ *
+ * If both are found, set req.follower and req.followed respectively, and call next().
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.verify_docs = function(req, res, next) {
     if(req.user) {
         var authUserId = req.user._id; //String
@@ -54,14 +88,24 @@ module.exports.verify_docs = function(req, res, next) {
             next(err);
         });
     } else {
-        // If no authenticated user
         res.status(401).json({
             message: 'Please authenticate.'
         });
     }
 }
 
-// Creates and responds with new relationship.
+/**
+ * Creates a relationship by pushing follower and followed into the opposite.
+ *
+ * In cases where the followed user's id is already in follower.following, and
+ * respond with 309, after filling gaps should there be any.
+ *
+ * In the rest of the cases, fill in the holes and respond with 200, and the
+ * followed user's id.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.create_relationship = function(req, res, next) {
     var follower = req.follower;
     var followed = req.followed;
@@ -111,7 +155,19 @@ module.exports.create_relationship = function(req, res, next) {
     });
 }
 
-// Deletes an existing relationship.
+/**
+ * Delete relationship by removing follower and followed user's id from each
+ * other.
+ *
+ * Respond with 404 if follower and followed user's id is not found in
+ * the respoective counterpart.
+ *
+ * When followed user's index is found in follower.following, respond with
+ * followedId, and fill in any gaps if there are any.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.delete_relationship = function(req, res, next) {
     var follower = req.follower;
     var followed = req.followed;
