@@ -2,12 +2,40 @@
 var Notification = require('../models/notificationModel'),
     User         = require('../models/userModel');
 
-// Require mongoose and set bluebird to handle its promises.
+// Require mongoose and set mongoose.Promise to Bluebird.
 var mongoose     = require('mongoose');
 var Promise      = require('bluebird');
 mongoose.Promise = Promise;
 
-// Gets notifications for a user.
+/**
+ * All these functions are middlewares to be employed as middlewares for
+ * /notifications routes.
+ * All these functions take req, res, and next as params.
+
+ * @param {Object} req Express req object, containing the incoming request data.
+ *
+ * @param {Object} res Express res object, containing the data to be sent in
+ * in the response.
+ *
+ * @param {Function} next Function that passes flow control to the next middleware
+ * in the chain when called with no arguments. When next(err) is called, flow
+ * control is passed directly to the error handling middleware set up for the route.
+*/
+
+/**
+ * Responds with 401 if no user is authenticated.
+ *
+ * Throws an Error if req.user._id is not a string representing a 12 byte hex
+ * number.
+ *
+ * Finds user and populates its last 5 notifications.
+ * If user is null, responds with 404.
+ *
+ * Respond with notifications.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.get_notifications = function(req, res, next) {
     if(req.user) {
         var userId = req.user._id; // String
@@ -40,14 +68,27 @@ module.exports.get_notifications = function(req, res, next) {
             next(err);
         });
     } else {
-        // If no user is authenticated
         res.status(401).json({
             message: 'Please authenticate.'
         });
     }
 }
 
-// Updates notification.read.
+/**
+ * Responds with 401 if no user is authenticated.
+ *
+ * Find notification with id provided in req.body._id.
+ *
+ * If no notification is found, respond with 404.
+ *
+ * If there is an authenticated user but it does not match the notification's
+ * user, respond with 403.
+ *
+ * Update notification.read to true, and save notification.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.mark_notification_as_read = function(req, res, next) {
     if(req.user) {
         var authUserId = req.user._id; // String
@@ -75,7 +116,6 @@ module.exports.mark_notification_as_read = function(req, res, next) {
                 });
             }
 
-            // If authenticated user does not match notification owner
             res.status(403).json({
                 message: 'You are not authorized to perform this operation.'
             });
@@ -83,7 +123,6 @@ module.exports.mark_notification_as_read = function(req, res, next) {
             next(err);
         });
     } else {
-        // If no user is authenticated
         res.status(401).json({
             message: 'Please authenticate.'
         });

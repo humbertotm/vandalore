@@ -28,7 +28,7 @@ var postSchema = new Schema({
             type: String,
             required: true
         },
-        thumbnail: {
+        thumbnailUrl: {
             type: String,
             required: true
         }

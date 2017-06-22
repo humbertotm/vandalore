@@ -20,7 +20,7 @@ var auth          = require('./expressAppModules/routes/auth'),
 var port = 3000;
 
 // Connect to Db
-mongoose.connect(configDB.url);
+mongoose.connect(configDB);
 
 // Double check the middleware used.
 app.use(morgan('dev'));
@@ -55,5 +55,5 @@ app.get('/', function(req, res) {
 
 
 app.listen(port, function() {
-    console.log('Listening on port ' + port);
+    console.log('Listening on port ' + port + ' environment: ' + process.env.NODE_ENV);
 });

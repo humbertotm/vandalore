@@ -3,19 +3,50 @@ var Post         = require('../models/postModel'),
     User         = require('../models/userModel'),
     Category     = require('../../../src/expressAppModules/models/categoryModel');
 
+// Require necessary npm modules.
 var fs           = require('fs'),
-    gm           = require('gm').
+    gm           = require('gm'),
     parallel     = require('async/parallel'),
     aws          = require('aws-sdk');
 
-// Require mongoose and set bluebird to handle its promises.
+// Require mongoose and set mongoose.Promise to Bluebird.
 var mongoose     = require('mongoose');
 var Promise      = require('bluebird');
 mongoose.Promise = Promise;
 
-aws.config.loadFromPath('../../AWS/aws-config.json');
+// Load aws access, and secret keys.
+// aws.config.loadFromPath('../../AWS/aws-config.json');
 
-// Find auth user before proceeding with post creation.
+/**
+ * All these functions are middlewares to be employed as middlewares for
+ * /posts routes.
+ * All these functions take req, res, and next as params.
+
+ * @param {Object} req Express req object, containing the incoming request data.
+ *
+ * @param {Object} res Express res object, containing the data to be sent in
+ * in the response.
+ *
+ * @param {Function} next Function that passes flow control to the next middleware
+ * in the chain when called with no arguments. When next(err) is called, flow
+ * control is passed directly to the error handling middleware set up for the route.
+*/
+
+/**
+ * Verify the authenticated user exists in DB before proceeding to create post.
+ *
+ * If no user is authenticated, respond with 401.
+ *
+ * Throw an error if req.user._id is not a string representing a 12 byte hex number.
+ *
+ * Find user with req.user._id.
+ * If no user is found (null), respond with 404.
+ *
+ * Set req.user to found user doc.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.verify_user = function(req, res, next) {
     if(req.user) {
         var userId = req.user._id; // String
@@ -45,7 +76,18 @@ module.exports.verify_user = function(req, res, next) {
     }
 }
 
-// Do image versioning.
+/**
+ * Do image versioning with the file in req.file set by multer.
+ *
+ * Create a fullPic and a thumbnail, running gm processes in parallel.
+ *
+ * Once the process is done successfully, set req.fullPicPath and
+ * req.thumbnailPath to the respective paths of the new image files created.
+ * Pass control flow to next middleware in the chain.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.image_versioning = function(req, res, next) {
     var path = req.file.path;
 
@@ -61,7 +103,6 @@ module.exports.image_versioning = function(req, res, next) {
     var fullPicPath = '../public/images/' + Date.now().toString() + '-' + 'fullPic.jpg';
     var thumbnailPath = '../public/images/' + Date.now().toString() + '-' + 'thumbnail.jpg';
 
-    // Run image versioning in parallel.
     parallel([
         // Adjust width and maintain proportions.
         function(done) {
@@ -79,10 +120,7 @@ module.exports.image_versioning = function(req, res, next) {
                 });
         }
     ], function done(err, results) {
-        if(err) {
-            console.log('Error in image versioning.');
-            return next(err);
-        }
+        if(err) { return next(err); }
 
         req.fullPicPath = fullPicPath;
         req.thumbnailPath = thumbnailPath;
@@ -90,7 +128,19 @@ module.exports.image_versioning = function(req, res, next) {
     });
 }
 
-// Store images in S3 Bucket.
+/**
+ * Stores fullPic and thumbnail versions to AWS S3 Bucket.
+ *
+ * Reads the files from req.fullPicPath and req.thumbnailPath, and creates a
+ * Buffer from each to proceed to upload them to S3 Bucket.
+ *
+ * Once both file have been successfully uploaded, set req.thumbnailUrl and
+ * req.fullPicUrl from s3.upload() return object. Pass control flow to next
+ * middleware in the chain.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.store_in_s3 = function(req, res, next) {
     var fullPic = req.fullPicPath;
     var thumbnail = req.thumbnailPath;
@@ -136,7 +186,15 @@ module.exports.store_in_s3 = function(req, res, next) {
     });
 }
 
-// Delete local image files.
+/**
+ * Delete all three (original, thumbnail, fullPic) local files on machine
+ * in parallel.
+ *
+ * On success, pass control flow to the next middleware in the chain.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.delete_local_files = function(req, res, next) {
     function deleteFile(file, done) {
         fs.unlink(file, function(err) {
@@ -162,13 +220,20 @@ module.exports.delete_local_files = function(req, res, next) {
     });
 }
 
-// Creates and responds with a new post.
+/**
+ * Lastly, create post
+ *
+ * If post is saved successfully, respond with newly created post.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.create_post = function(req, res, next) {
     var post = new Post();
     post.title = req.body.title;
     post.description = req.body.description;
     post.image.fullPicUrl = req.fullPicUrl;
-    post.image.thumbnail = req.thumbnailUrl;
+    post.image.thumbnailUrl = req.thumbnailUrl;
     post.category = req.body.category;
     post.userId = req.user._id;
 
@@ -183,7 +248,26 @@ module.exports.create_post = function(req, res, next) {
     });
 }
 
-// Verify user and post of interest exist in the DB, for delete actions.
+/**
+ * Verify the authenticated user, and post exist in DB before
+ * proceeding to delete post.
+ *
+ * If no user is authenticated, respond with 401.
+ *
+ * Throw an error if req.user._id or req.body.postId is not a string representing
+ * a 12 byte hex number.
+ *
+ * Respond with 404 if one, or both docs are null.
+ *
+ * Find user with req.user._id.
+ * If no user is found (null), respond with 404.
+ *
+ * Set req.user and req.post to found docs, and pass control flow to next
+ * middleware in the chain.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.verify_docs = function(req, res, next) {
     if(req.user) {
         var userId = req.user._id; // String
@@ -226,14 +310,24 @@ module.exports.verify_docs = function(req, res, next) {
             next(err);
         });
     } else {
-        // If no authenticated user
         res.status(401).json({
             message: 'Please authenticate.'
         });
     }
 }
 
-// Deletes a post.
+/**
+ * Verify post._id is among user.posts.
+ *
+ * If it is not, respond with 403.
+ *
+ * Remove post from user.posts, and save user.
+ *
+ * Once user has been saved, remove post, and respond with the removed post's id.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.delete_post = function(req, res, next) {
     var user = req.user;
     var post = req.post;
@@ -261,7 +355,20 @@ module.exports.delete_post = function(req, res, next) {
     });
 }
 
-// Gets a post.
+/**
+ * Gets a post.
+ *
+ * Throws an Error if req.params.postId is not a string representing a 12 byte
+ * hex number.
+ *
+ * Finds a post with req.params.postId.
+ * Responds with 404 if null is returned.
+ *
+ * Responds with post.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.get_post = function(req, res, next) {
     // Client will request post, and after post is received,
     // comments will be requested.
@@ -290,7 +397,21 @@ module.exports.get_post = function(req, res, next) {
     });
 }
 
-// Gets a post's comments.
+/**
+ * Gets a post's comments.
+ *
+ * Throw an Error if req.params.postId is not a string representing a 12 byte
+ * hex number.
+ *
+ * Find post and populate the first 20 comments, and each comment's user.
+ *
+ * If post is null, respond with 404.
+ *
+ * Respond only with comments where userId is not null.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.get_post_comments = function(req, res, next) {
     var postId = req.params.postId; // String
 
@@ -305,7 +426,7 @@ module.exports.get_post_comments = function(req, res, next) {
         path: 'comments',
         options: { limit: 20 },
         populate: {
-            path: 'user',
+            path: 'userId',
             select: 'username miniProfilePic _id'
         }
     }).exec().then(function(post) {
@@ -325,7 +446,67 @@ module.exports.get_post_comments = function(req, res, next) {
 
         res.json({
             entities: {
-                // This will be normalized with normalizr schemas.
+                comments: postComms
+            }
+        });
+    }).catch(function(err) {
+        next(err);
+    });
+}
+
+/**
+ * Gets more posts starting at minId.
+ *
+ * Throw an Error if req.params.postId or req.params.minId is not a string
+ * representing a 12 byte hex number.
+ *
+ * Find a post with req.params.postId and populate the next 20 comments (along
+ * with its respective user) beginning at req.params.minId.
+ *
+ * If post returned is null, respond with 404.
+ *
+ * Respond only with comments where userId is not null.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
+module.exports.get_more_comments = function(req, res, next) {
+    var postId = req.params.postId;
+    var minId = req.params.minId;
+
+    return Post.findById(postId).exec().then(function(post) {
+        if(post === null) {
+            return res.status(404).json({
+                message: 'Post not found.'
+            });
+        }
+
+        // What if this is -1?
+        var toSkip = post.comments.indexOf(mongoose.Types.ObjectId(minId));
+        return post.populate({
+            path: 'comments',
+            options: {
+                limit: 20,
+                skip: toSkip
+            },
+            populate: {
+                path: 'userId',
+                select: 'username profilePic _id -admin -password'
+            }
+        }).execPopulate();
+    }).then(function(popPost) {
+        var postComms = [];
+
+        // Does this include only populated comments?
+        var comms = popPost.comments;
+        comms.forEach(function(comment) {
+            if(comment.userId !== null) {
+                postComms.push(comment);
+            }
+        });
+
+        res.json({
+            entities: {
                 comments: postComms
             }
         });

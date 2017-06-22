@@ -3,14 +3,48 @@ var User         = require('../models/userModel'),
     Post         = require('../models/postModel'),
     Notification = require('../models/notificationModel');
 
-// Require mongoose and set bluebird to handle its promises.
+// Require mongoose and set mongoose.Promise to Bluebird.
 var mongoose     = require('mongoose');
 var Promise      = require('bluebird');
 mongoose.Promise = Promise;
 
 var votesForHot  = require('../utils').votesForHot;
 
-// Verify user and post of interest exist in the DB, for both create and delete actions.
+/**
+ * All these functions are middlewares to be employed as middlewares for
+ * /votes routes.
+ * All these functions take req, res, and next as params.
+
+ * @param {Object} req Express req object, containing the incoming request data.
+ *
+ * @param {Object} res Express res object, containing the data to be sent in
+ * in the response.
+ *
+ * @param {Function} next Function that passes flow control to the next middleware
+ * in the chain when called with no arguments. When next(err) is called, flow
+ * control is passed directly to the error handling middleware set up for the route.
+*/
+
+/**
+ * This function verifies the user and post associated to the soon-to-be comment
+ * exist in the database before proceeding to it.
+ *
+ * If there is no authenticated user (!req.user), respond with 401.
+ *
+ * If there is an authenticated user (req.user as set by previous expressJWT
+ * middleware):
+ *
+ * Throw an Error if req.user._id or req.body.postId is not a string representing
+ * a 12 byte hex number.
+ *
+ * Find both, user and post.
+ * If one or both are null (do not exist in the DB), respond with 404.
+ *
+ * If both are found, set req.user and req.post respectively, and call next().
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.verify_docs = function(req, res, next) {
     if(req.user) {
         var userId = req.user._id; // String
@@ -53,14 +87,23 @@ module.exports.verify_docs = function(req, res, next) {
             next(err);
         });
     } else {
-        // If no authenticated user
         res.status(401).json({
             message: 'Please authenticate.'
         });
     }
 }
 
-// Creates a vote.
+/**
+ * Respond with 309 if post._id already exists in user.votedPosts.
+ *
+ * Push post's id into user voted posts, and save user.
+ * Once it is save, increase post's vote count by 1 and save it.
+ *
+ * Pass control flow to the next middleware in the chain.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.create_vote = function(req, res, next) {
     var post = req.post,
         user = req.user;
@@ -84,6 +127,17 @@ module.exports.create_vote = function(req, res, next) {
     });
 }
 
+/**
+ * If post is already hot, respond with 200.
+ *
+ * If post is not hot, and vote count surpasses the vote count required for hot,
+ * create a new notification , ans save, and respond with 200.
+ *
+ * Else, respond with 200.
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.vote_count = function(req, res, next) {
     var post = req.post;
 
@@ -115,13 +169,22 @@ module.exports.vote_count = function(req, res, next) {
     });
 }
 
-// Deletes a vote.
+/**
+ * If post's id is not found among user voted posts, respond with 404.
+ *
+ * Remove post's id from user voted posts, and save. Then decrease post's
+ * vote count by 1 and save post.
+ *
+ * Respond with 200/
+ *
+ * If there is an I/O error along the way, call next(err) to handle it
+ * appropriately.
+*/
 module.exports.delete_vote = function(req, res, next) {
     var user = req.user;
     var post = req.post;
 
-    // Delete vote from user.
-    var index = user.votedPosts.indexOf(post._id); // ObjectId
+    var index = user.votedPosts.indexOf(mongoose.types.ObjectId(post._id));
 
     if(index === -1) {
         return res.status(404).json({
